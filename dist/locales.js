@@ -15,7 +15,9 @@ export const translations = {
         noListingFound: "No Listing Found",
         navigateMessage: "Please navigate to an idealista listing.",
         listingPrefix: "Listing #",
-        guest: "Guest"
+        guest: "Guest",
+        reply: "Reply",
+        cancel: "Cancel"
     },
     pt: {
         loadingId: "A carregar ID...",
@@ -32,6 +34,8 @@ export const translations = {
         noListingFound: "Anúncio não encontrado",
         navigateMessage: "Por favor navegue para um anúncio do idealista.",
         listingPrefix: "Anúncio #",
-        guest: "Visitante"
+        guest: "Visitante",
+        reply: "Responder",
+        cancel: "Cancelar"
     }
 };

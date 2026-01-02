@@ -134,40 +134,124 @@ function renderComments() {
         return;
     }
     comments.forEach(comment => {
-        const card = document.createElement('div');
-        card.className = 'comment-card';
-        const likeClass = comment.likedByUser ? 'liked' : '';
-        // Generate Topic Tags HTML
-        const topicsHtml = comment.topics && comment.topics.length > 0
-            ? `<div class="topic-tags">
-                ${comment.topics.map(topicKey => {
-                // Translate the topic key
-                const label = t[topicKey] || topicKey;
-                return `<span class="topic-tag topic-${topicKey}">${label}</span>`;
-            }).join('')}
-               </div>`
-            : '';
-        card.innerHTML = `
-            <div class="comment-header">
-                <span>${comment.nickname}</span>
-                <span style="font-weight:normal; opacity:0.6;">${comment.timestamp}</span>
-            </div>
-            ${topicsHtml}
-            <div class="comment-body">
-                ${comment.text}
-            </div>
-            <div class="comment-actions" data-id="${comment.id}">
-                <span class="heart-icon ${likeClass}">♥</span>
-                <span>${comment.likes}</span>
+        commentsList.appendChild(renderCommentNode(comment));
+    });
+    // Scroll to bottom only if it's the first render or user just posted?
+    // For now, let's keep it simple and not auto-scroll on every render, 
+    // or maybe only scroll if near bottom. 
+    // commentsList.scrollTop = commentsList.scrollHeight;
+}
+function renderCommentNode(comment) {
+    const t = translations[currentLanguage];
+    const card = document.createElement('div');
+    card.className = 'comment-card';
+    const likeClass = comment.likedByUser ? 'liked' : '';
+    // Generate Topic Tags HTML
+    const topicsHtml = comment.topics && comment.topics.length > 0
+        ? `<div class="topic-tags">
+            ${comment.topics.map(topicKey => {
+            // Translate the topic key
+            const label = t[topicKey] || topicKey;
+            return `<span class="topic-tag topic-${topicKey}">${label}</span>`;
+        }).join('')}
+           </div>`
+        : '';
+    card.innerHTML = `
+        <div class="comment-header">
+            <span>${comment.nickname}</span>
+            <span style="font-weight:normal; opacity:0.6;">${comment.timestamp}</span>
+        </div>
+        ${topicsHtml}
+        <div class="comment-body">
+            ${comment.text}
+        </div>
+        <div class="comment-actions">
+            <span class="action-btn like-btn ${likeClass}" data-action="like">♥ ${comment.likes}</span>
+            <span class="action-btn reply-btn" data-action="reply">${t.reply || 'Reply'}</span>
+        </div>
+        <div class="reply-input-container" style="display:none;"></div>
+        <div class="replies-container"></div>
+    `;
+    // Attach Event Listeners
+    const likeBtn = card.querySelector('.like-btn');
+    likeBtn === null || likeBtn === void 0 ? void 0 : likeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleLike(comment.id);
+    });
+    const replyBtn = card.querySelector('.reply-btn');
+    replyBtn === null || replyBtn === void 0 ? void 0 : replyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleReplyInput(card, comment.id);
+    });
+    // Render Nested Replies
+    const repliesContainer = card.querySelector('.replies-container');
+    if (comment.replies && comment.replies.length > 0) {
+        comment.replies.forEach(reply => {
+            repliesContainer.appendChild(renderCommentNode(reply));
+        });
+    }
+    return card;
+}
+function toggleReplyInput(card, parentId) {
+    const container = card.querySelector('.reply-input-container');
+    const t = translations[currentLanguage];
+    if (container.style.display === 'none') {
+        container.style.display = 'flex';
+        container.innerHTML = `
+            <textarea class="reply-textarea" placeholder="${t.placeholder}"></textarea>
+            <div class="reply-actions">
+                <button class="btn-small btn-cancel">${t.cancel || 'Cancel'}</button>
+                <button class="btn-small btn-post">${t.post}</button>
             </div>
         `;
-        // Add Like Listener
-        const actionBtn = card.querySelector('.comment-actions');
-        actionBtn === null || actionBtn === void 0 ? void 0 : actionBtn.addEventListener('click', () => toggleLike(comment.id));
-        commentsList.appendChild(card);
-    });
-    // Scroll to bottom
-    commentsList.scrollTop = commentsList.scrollHeight;
+        const cancelBtn = container.querySelector('.btn-cancel');
+        cancelBtn === null || cancelBtn === void 0 ? void 0 : cancelBtn.addEventListener('click', () => {
+            container.style.display = 'none';
+            container.innerHTML = '';
+        });
+        const postBtn = container.querySelector('.btn-post');
+        postBtn === null || postBtn === void 0 ? void 0 : postBtn.addEventListener('click', () => {
+            const textarea = container.querySelector('.reply-textarea');
+            const text = textarea.value.trim();
+            if (text) {
+                handlePostReply(parentId, text);
+            }
+        });
+        // Focus textarea
+        container.querySelector('.reply-textarea').focus();
+    }
+    else {
+        container.style.display = 'none';
+        container.innerHTML = '';
+    }
+}
+function handlePostReply(parentId, text) {
+    const newReply = {
+        id: Date.now(),
+        nickname: currentUserNickname,
+        text: text,
+        topics: [],
+        likes: 0,
+        likedByUser: false,
+        timestamp: new Date().toLocaleTimeString()
+    };
+    // Find parent and add reply
+    const addReplyRecursively = (commentsList) => {
+        for (let comment of commentsList) {
+            if (comment.id === parentId) {
+                if (!comment.replies)
+                    comment.replies = [];
+                comment.replies.push(newReply);
+                return true;
+            }
+            if (comment.replies && addReplyRecursively(comment.replies)) {
+                return true;
+            }
+        }
+        return false;
+    };
+    addReplyRecursively(comments);
+    renderComments();
 }
 function handlePostComment() {
     const text = commentInput.value.trim();
@@ -190,28 +274,66 @@ function handlePostComment() {
     // Clear checkboxes
     document.querySelectorAll('.topic-checkbox').forEach(cb => cb.checked = false);
     renderComments();
+    // Scroll to bottom for main comments
+    commentsList.scrollTop = commentsList.scrollHeight;
 }
 function toggleLike(commentId) {
-    const comment = comments.find(c => c.id === commentId);
-    if (comment) {
-        if (comment.likedByUser) {
-            comment.likes--;
-            comment.likedByUser = false;
+    const toggleRecursively = (list) => {
+        for (let comment of list) {
+            if (comment.id === commentId) {
+                if (comment.likedByUser) {
+                    comment.likes--;
+                    comment.likedByUser = false;
+                }
+                else {
+                    comment.likes++;
+                    comment.likedByUser = true;
+                }
+                return true;
+            }
+            if (comment.replies && toggleRecursively(comment.replies)) {
+                return true;
+            }
         }
-        else {
-            comment.likes++;
-            comment.likedByUser = true;
-        }
-        renderComments();
-    }
+        return false;
+    };
+    toggleRecursively(comments);
+    renderComments();
 }
 postBtn.addEventListener('click', handlePostComment);
 // --- Mock Data ---
 function loadMockComments() {
     // In the real version, we will fetch from Firebase using currentListingId
     comments = [
-        { id: 1, nickname: "HouseHunter_PT", text: "Visited this yesterday. The photos make the living room look bigger than it is.", topics: ["price", "noise"], likes: 4, likedByUser: false, timestamp: "10:30 AM" },
-        { id: 2, nickname: "Maria1990", text: "Does anyone know if the street is noisy at night?", topics: ["noise"], likes: 1, likedByUser: false, timestamp: "11:15 AM" }
+        {
+            id: 1,
+            nickname: "HouseHunter_PT",
+            text: "Visited this yesterday. The photos make the living room look bigger than it is.",
+            topics: ["price", "noise"],
+            likes: 4,
+            likedByUser: false,
+            timestamp: "10:30 AM",
+            replies: [
+                {
+                    id: 3,
+                    nickname: "Agent007",
+                    text: "Thanks for the heads up!",
+                    topics: [],
+                    likes: 1,
+                    likedByUser: false,
+                    timestamp: "10:45 AM"
+                }
+            ]
+        },
+        {
+            id: 2,
+            nickname: "Maria1990",
+            text: "Does anyone know if the street is noisy at night?",
+            topics: ["noise"],
+            likes: 1,
+            likedByUser: false,
+            timestamp: "11:15 AM"
+        }
     ];
     renderComments();
 }

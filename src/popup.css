@@ -72,6 +72,8 @@ input#nickname {
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     font-size: 13px;
+    display: flex;
+    flex-direction: column;
 }
 
 .comment-header {
@@ -109,15 +111,86 @@ input#nickname {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 5px;
+    gap: 10px; /* Increased gap */
     color: #888;
-    cursor: pointer;
     font-size: 11px;
 }
 
-.heart-icon { font-size: 14px; transition: transform 0.1s; }
-.heart-icon:hover { transform: scale(1.2); }
+.action-btn {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.action-btn:hover {
+    color: #555;
+}
+
+.like-btn:hover {
+    color: #e0245e;
+}
+
 .liked { color: #e0245e; }
+
+/* Nested Comments */
+.replies-container {
+    margin-left: 10px;
+    margin-top: 10px;
+    padding-left: 10px;
+    border-left: 2px solid #eee;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.reply-input-container {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: #f1f1f1;
+    padding: 8px;
+    border-radius: 5px;
+}
+
+.reply-textarea {
+    width: 100%;
+    height: 30px;
+    padding: 5px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 12px;
+    resize: none;
+}
+
+.reply-actions {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-end;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 4px;
+}
+
+.btn-cancel {
+    background-color: #999;
+}
+.btn-cancel:hover {
+    background-color: #777;
+}
+
+.btn-post {
+    background-color: #B9E937;
+    color: #333;
+}
+.btn-post:hover {
+    background-color: #a3d125;
+}
+
 
 .input-container {
     background: white;
