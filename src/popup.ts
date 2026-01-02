@@ -1,3 +1,5 @@
+import { translations, Language, TranslationKeys } from './locales.js';
+
 // --- Interfaces ---
 interface UserComment {
     id: number;
@@ -16,7 +18,9 @@ interface PropertyInfo {
 
 // --- State Management ---
 let currentListingId: string | null = null;
+let currentListingTitle: string | null = null;
 let currentUserNickname: string = "Guest";
+let currentLanguage: Language = 'en';
 let comments: UserComment[] = []; // Temporary In-Memory DB
 
 // --- DOM Elements ---
@@ -26,17 +30,35 @@ const commentsList = document.getElementById('comments-list') as HTMLElement;
 const postBtn = document.getElementById('post-btn') as HTMLButtonElement;
 const commentInput = document.getElementById('comment-input') as HTMLTextAreaElement;
 const nicknameInput = document.getElementById('nickname') as HTMLInputElement;
+const langSelect = document.getElementById('lang-select') as HTMLSelectElement;
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     initializeExtension();
     
-    // Load Nickname from storage
-    chrome.storage.local.get(['nickname'], (result: { [key: string]: any }) => {
+    // Auto-detect browser language
+    const browserLang = navigator.language.split('-')[0];
+    if (browserLang === 'pt') {
+        currentLanguage = 'pt';
+        if (langSelect) {
+            langSelect.value = 'pt';
+        }
+    }
+
+    // Load Settings from storage (overrides auto-detect)
+    chrome.storage.local.get(['nickname', 'language'], (result: { [key: string]: any }) => {
         if (result.nickname) {
             currentUserNickname = result.nickname;
             nicknameInput.value = result.nickname;
         }
+        if (result.language) {
+            currentLanguage = result.language as Language;
+            if (langSelect) {
+                langSelect.value = currentLanguage;
+            }
+        }
+        // Update UI after determining final language
+        updateUITexts();
     });
 });
 
@@ -46,6 +68,60 @@ nicknameInput.addEventListener('change', (e) => {
     currentUserNickname = target.value || "Guest";
     chrome.storage.local.set({ nickname: currentUserNickname });
 });
+
+// Language Switch
+if (langSelect) {
+    langSelect.addEventListener('change', (e) => {
+        const target = e.target as HTMLSelectElement;
+        currentLanguage = target.value as Language;
+        chrome.storage.local.set({ language: currentLanguage });
+        updateUITexts();
+        renderComments(); // Re-render comments to translate topic tags if needed
+    });
+}
+
+function updateUITexts() {
+    const t = translations[currentLanguage];
+    
+    // Update elements with data-i18n
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n') as TranslationKeys;
+        if (t[key]) {
+            el.textContent = t[key];
+        }
+    });
+
+    // Update placeholders
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder') as TranslationKeys;
+        if (t[key]) {
+            (el as HTMLInputElement).placeholder = t[key];
+        }
+    });
+    
+    // Update dynamic elements if needed
+    if (currentListingId) {
+        // We have an ID loaded
+        idDisplay.innerText = `${t.listingPrefix}${currentListingId}`;
+        // Ensure title is not overwritten by "Detecting listing..."
+        if (titleDisplay.innerText === translations['en'].detectingListing || 
+            titleDisplay.innerText === translations['pt'].detectingListing) {
+             // If currently showing default detecting text, we might want to keep the scraped title
+             // But titleDisplay.innerText is the DOM element.
+             // We need to store the scraped title in a variable to restore it or stop it from being overwritten.
+        }
+    } else {
+        // No ID loaded yet
+        if (postBtn.disabled) {
+             // We tried and failed to find a listing
+             idDisplay.innerText = t.noListingFound;
+             titleDisplay.innerText = t.navigateMessage;
+        } else {
+             // Still loading or detecting
+             // This case is handled by the data-i18n="loadingId" above
+        }
+    }
+}
 
 // --- Core Logic ---
 
@@ -58,17 +134,21 @@ function initializeExtension() {
         if (activeTab.id) {
             // Send message to Content Script to get Data
             chrome.tabs.sendMessage(activeTab.id, { action: "GET_PROPERTY_INFO" }, (response: PropertyInfo) => {
+                const tr = translations[currentLanguage];
                 if (chrome.runtime.lastError || !response || !response.id) {
-                    idDisplay.innerText = "No Listing Found";
-                    titleDisplay.innerText = "Please navigate to an idealista listing.";
+                    idDisplay.innerText = tr.noListingFound;
+                    titleDisplay.innerText = tr.navigateMessage;
                     postBtn.disabled = true;
                     return;
                 }
 
                 // Update UI with Listing Data
                 currentListingId = response.id;
-                idDisplay.innerText = `Listing #${response.id}`;
+                currentListingTitle = response.title;
+                idDisplay.innerText = `${tr.listingPrefix}${response.id}`;
                 titleDisplay.innerText = response.title;
+                // Remove data-i18n attribute so it doesn't get overwritten by updateUITexts
+                titleDisplay.removeAttribute('data-i18n');
                 
                 // MOCK: Load fake comments for demonstration
                 loadMockComments(); 
@@ -79,9 +159,10 @@ function initializeExtension() {
 
 function renderComments() {
     commentsList.innerHTML = ''; // Clear current list
+    const t = translations[currentLanguage];
 
     if (comments.length === 0) {
-        commentsList.innerHTML = '<div class="empty-state">No comments yet.</div>';
+        commentsList.innerHTML = `<div class="empty-state">${t.noComments}</div>`;
         return;
     }
 
@@ -94,7 +175,11 @@ function renderComments() {
         // Generate Topic Tags HTML
         const topicsHtml = comment.topics && comment.topics.length > 0 
             ? `<div class="topic-tags">
-                ${comment.topics.map(t => `<span class="topic-tag topic-${t}">${t.charAt(0).toUpperCase() + t.slice(1)}</span>`).join('')}
+                ${comment.topics.map(topicKey => {
+                    // Translate the topic key
+                    const label = t[topicKey as TranslationKeys] || topicKey;
+                    return `<span class="topic-tag topic-${topicKey}">${label}</span>`;
+                }).join('')}
                </div>`
             : '';
 

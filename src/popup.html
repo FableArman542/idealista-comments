@@ -7,37 +7,43 @@
 <body>
     <div class="container">
         <header>
-            <h2 id="property-id">Loading ID...</h2>
-            <p id="property-title" class="truncate">Detecting listing...</p>
+            <div class="header-top">
+                <h2 id="property-id" data-i18n="loadingId">Loading ID...</h2>
+                <select id="lang-select">
+                    <option value="en">EN</option>
+                    <option value="pt">PT</option>
+                </select>
+            </div>
+            <p id="property-title" class="truncate" data-i18n="detectingListing">Detecting listing...</p>
         </header>
 
         <div class="user-bar">
-            <label for="nickname">Posting as:</label>
-            <input type="text" id="nickname" placeholder="AnonUser" />
+            <label for="nickname" data-i18n="postingAs">Posting as:</label>
+            <input type="text" id="nickname" data-i18n-placeholder="anonUser" placeholder="AnonUser" />
         </div>
 
         <div id="comments-list" class="comments-area">
-            <div class="empty-state">No comments yet. Be the first!</div>
+            <div class="empty-state" data-i18n="noComments">No comments yet. Be the first!</div>
         </div>
 
         <div class="input-container">
             <div class="topic-selector">
                 <input type="checkbox" id="topic-price" class="topic-checkbox" value="price">
-                <label for="topic-price" class="topic-label lbl-price">Price</label>
+                <label for="topic-price" class="topic-label lbl-price" data-i18n="price">Price</label>
                 
                 <input type="checkbox" id="topic-noise" class="topic-checkbox" value="noise">
-                <label for="topic-noise" class="topic-label lbl-noise">Noise</label>
+                <label for="topic-noise" class="topic-label lbl-noise" data-i18n="noise">Noise</label>
                 
                 <input type="checkbox" id="topic-security" class="topic-checkbox" value="security">
-                <label for="topic-security" class="topic-label lbl-security">Security</label>
+                <label for="topic-security" class="topic-label lbl-security" data-i18n="security">Security</label>
 
                 <input type="checkbox" id="topic-accesses" class="topic-checkbox" value="accesses">
-                <label for="topic-accesses" class="topic-label lbl-accesses">Accesses</label>
+                <label for="topic-accesses" class="topic-label lbl-accesses" data-i18n="accesses">Accesses</label>
             </div>
             
             <div class="input-area">
-                <textarea id="comment-input" placeholder="Is the price fair? How is the neighborhood?"></textarea>
-                <button id="post-btn">Post</button>
+                <textarea id="comment-input" data-i18n-placeholder="placeholder" placeholder="Is the price fair? How is the neighborhood?"></textarea>
+                <button id="post-btn" data-i18n="post">Post</button>
             </div>
         </div>
     </div>

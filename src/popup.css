@@ -19,6 +19,21 @@ header {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+select#lang-select {
+    font-size: 11px;
+    padding: 2px;
+    border-radius: 4px;
+    border: none;
+    background: rgba(255,255,255,0.5);
+    cursor: pointer;
+}
+
 h2 { margin: 0; font-size: 18px; font-weight: 800; }
 .truncate {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
