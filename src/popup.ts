@@ -1,16 +1,21 @@
 import { translations, Language, TranslationKeys } from './locales';
-import { auth, signInWithCredential, GoogleAuthProvider, signOut, onAuthStateChanged, User } from './firebase';
+import { auth, signInWithCredential, GoogleAuthProvider, signOut, onAuthStateChanged, User, db, collection, addDoc, getDocs, query, where, doc, updateDoc, increment, arrayUnion, arrayRemove, serverTimestamp, Timestamp } from './firebase';
 
 // --- Interfaces ---
 interface UserComment {
-    id: number;
+    id: string; // Changed to string for Firestore IDs
+    listingId: string;
+    userId: string;
     nickname: string;
     text: string;
     topics: string[];
     likes: number;
-    likedByUser: boolean; // Mocking local state
-    timestamp: string;
-    replies?: UserComment[];
+    likedBy: string[]; // Array of userIds who liked
+    timestamp: any; // Firestore Timestamp
+    replies?: UserComment[]; // Nested replies are usually subcollections or recursive structures, but for simplicity we might fetch them separately or flatten.
+                            // For MVP, let's keep replies as a subcollection or just a separate query. 
+                            // Actually, keeping replies in a top-level collection with 'parentId' is easier for NoSQL.
+    parentId?: string | null;
 }
 
 interface PropertyInfo {
@@ -23,7 +28,8 @@ let currentListingId: string | null = null;
 let currentListingTitle: string | null = null;
 let currentUserNickname: string = "Guest";
 let currentLanguage: Language = 'en';
-let comments: UserComment[] = []; // Temporary In-Memory DB
+let comments: UserComment[] = []; 
+let currentUserId: string | null = null;
 
 // --- DOM Elements ---
 const idDisplay = document.getElementById('property-id') as HTMLElement;
@@ -164,16 +170,28 @@ function injectContentScript(tabId: number) {
             return;
         }
         
-        // Retry message after injection
-        setTimeout(() => {
+        // Retry message after injection with a slight delay
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        const trySendMessage = () => {
+            attempts++;
             chrome.tabs.sendMessage(tabId, { action: "GET_PROPERTY_INFO" }, (response: PropertyInfo) => {
                 if (chrome.runtime.lastError) {
-                    showErrorState();
+                    console.warn(`Attempt ${attempts} failed:`, chrome.runtime.lastError.message);
+                    if (attempts < maxAttempts) {
+                        setTimeout(trySendMessage, 200); // Retry every 200ms
+                    } else {
+                        showErrorState();
+                    }
                 } else {
+                    console.log("Connection established!");
                     handlePropertyResponse(response);
                 }
             });
-        }, 100);
+        };
+
+        setTimeout(trySendMessage, 100);
     });
 }
 
@@ -193,8 +211,8 @@ function handlePropertyResponse(response: PropertyInfo) {
     titleDisplay.removeAttribute('data-i18n');
     postBtn.disabled = false;
     
-    // MOCK: Load fake comments for demonstration
-    loadMockComments(); 
+    // Fetch real comments
+    fetchComments(response.id);
 }
 
 function showErrorState() {
@@ -207,6 +225,8 @@ function showErrorState() {
 // --- Auth Logic ---
 
 function initializeAuth() {
+    console.log("Extension ID (for Google Cloud Console):", chrome.runtime.id);
+    
     onAuthStateChanged(auth, (user) => {
         if (user) {
             showAuthenticatedUI(user);
@@ -214,7 +234,7 @@ function initializeAuth() {
             showUnauthenticatedUI();
         }
     });
-
+    
     if (googleSignInBtn) {
         googleSignInBtn.addEventListener('click', handleGoogleSignIn);
     }
@@ -266,8 +286,9 @@ function showAuthenticatedUI(user: User) {
         }
     }
 
-    // Update global nickname
+    // Update global nickname and ID
     currentUserNickname = user.displayName || "User";
+    currentUserId = user.uid;
     
     // Show input container
     if (inputContainer) inputContainer.style.display = 'flex';
@@ -281,12 +302,60 @@ function showUnauthenticatedUI() {
     if (userInfoView) userInfoView.style.display = 'none';
     
     currentUserNickname = "Guest";
+    currentUserId = null;
     
     // Hide input container
     if (inputContainer) inputContainer.style.display = 'none';
     
     // Re-render comments to disable actions
     renderComments();
+}
+
+// --- Firestore Logic ---
+
+async function fetchComments(listingId: string) {
+    if (!listingId) return;
+    
+    commentsList.innerHTML = '<div class="loading-spinner">Loading...</div>';
+    
+    try {
+        // Query without orderBy to avoid needing a composite index
+        const q = query(
+            collection(db, "comments"), 
+            where("listingId", "==", listingId)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const allComments: UserComment[] = [];
+        
+        querySnapshot.forEach((doc) => {
+            allComments.push({ id: doc.id, ...doc.data() } as UserComment);
+        });
+
+        // Sort client-side
+        allComments.sort((a, b) => {
+            const timeA = a.timestamp?.seconds ?? 0;
+            const timeB = b.timestamp?.seconds ?? 0;
+            return timeA - timeB;
+        });
+        
+        // Organize into threads (parents and replies)
+        // This is a simple client-side threading. 
+        // Ideally we fetch root comments and then replies, but for small scale this works.
+        const rootComments = allComments.filter(c => !c.parentId);
+        const replies = allComments.filter(c => c.parentId);
+        
+        rootComments.forEach(root => {
+            root.replies = replies.filter(r => r.parentId === root.id);
+        });
+        
+        comments = rootComments;
+        renderComments();
+        
+    } catch (error) {
+        console.error("Error fetching comments:", error);
+        commentsList.innerHTML = `<div class="error-state">Error loading comments.</div>`;
+    }
 }
 
 function renderComments() {
@@ -301,29 +370,32 @@ function renderComments() {
     comments.forEach(comment => {
         commentsList.appendChild(renderCommentNode(comment));
     });
-
-    // Scroll to bottom only if it's the first render or user just posted?
-    // For now, let's keep it simple and not auto-scroll on every render, 
-    // or maybe only scroll if near bottom. 
-    // commentsList.scrollTop = commentsList.scrollHeight;
 }
 
 function renderCommentNode(comment: UserComment): HTMLElement {
     const t = translations[currentLanguage];
     const card = document.createElement('div');
     card.className = 'comment-card';
+    card.dataset.id = comment.id;
     
-    const likeClass = comment.likedByUser ? 'liked' : '';
-    
-    // Check if user is logged in
+    // Check if user is logged in and liked
     const isLoggedIn = auth.currentUser !== null;
+    const likedByUser = currentUserId ? (comment.likedBy && comment.likedBy.includes(currentUserId)) : false;
+    const likeClass = likedByUser ? 'liked' : '';
     const actionStyle = isLoggedIn ? '' : 'opacity: 0.5; cursor: not-allowed;';
     
+    // Format Timestamp
+    let timeString = "";
+    if (comment.timestamp && comment.timestamp.toDate) {
+        timeString = comment.timestamp.toDate().toLocaleDateString() + " " + comment.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    } else {
+        timeString = "Just now"; // Optimistic update fallback
+    }
+
     // Generate Topic Tags HTML
     const topicsHtml = comment.topics && comment.topics.length > 0 
         ? `<div class="topic-tags">
             ${comment.topics.map(topicKey => {
-                // Translate the topic key
                 const label = t[topicKey as TranslationKeys] || topicKey;
                 return `<span class="topic-tag topic-${topicKey}">${label}</span>`;
             }).join('')}
@@ -333,14 +405,14 @@ function renderCommentNode(comment: UserComment): HTMLElement {
     card.innerHTML = `
         <div class="comment-header">
             <span>${comment.nickname}</span>
-            <span style="font-weight:normal; opacity:0.6;">${comment.timestamp}</span>
+            <span style="font-weight:normal; opacity:0.6;">${timeString}</span>
         </div>
         ${topicsHtml}
         <div class="comment-body">
             ${comment.text}
         </div>
         <div class="comment-actions">
-            <span class="action-btn like-btn ${likeClass}" style="${actionStyle}" data-action="like">♥ ${comment.likes}</span>
+            <span class="action-btn like-btn ${likeClass}" style="${actionStyle}" data-action="like">♥ ${comment.likes || 0}</span>
             <span class="action-btn reply-btn" style="${actionStyle}" data-action="reply">${t.reply || 'Reply'}</span>
         </div>
         <div class="reply-input-container" style="display:none;"></div>
@@ -351,14 +423,14 @@ function renderCommentNode(comment: UserComment): HTMLElement {
     const likeBtn = card.querySelector('.like-btn');
     likeBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (!auth.currentUser) return; // Block if not logged in
-        toggleLike(comment.id);
+        if (!auth.currentUser) return; 
+        toggleLike(comment.id, likedByUser);
     });
 
     const replyBtn = card.querySelector('.reply-btn');
     replyBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (!auth.currentUser) return; // Block if not logged in
+        if (!auth.currentUser) return;
         toggleReplyInput(card, comment.id);
     });
 
@@ -373,7 +445,7 @@ function renderCommentNode(comment: UserComment): HTMLElement {
     return card;
 }
 
-function toggleReplyInput(card: HTMLElement, parentId: number) {
+function toggleReplyInput(card: HTMLElement, parentId: string) {
     const container = card.querySelector('.reply-input-container') as HTMLElement;
     const t = translations[currentLanguage];
 
@@ -399,10 +471,11 @@ function toggleReplyInput(card: HTMLElement, parentId: number) {
             const text = textarea.value.trim();
             if (text) {
                 handlePostReply(parentId, text);
+                container.style.display = 'none';
+                container.innerHTML = '';
             }
         });
         
-        // Focus textarea
         (container.querySelector('.reply-textarea') as HTMLElement).focus();
 
     } else {
@@ -411,127 +484,84 @@ function toggleReplyInput(card: HTMLElement, parentId: number) {
     }
 }
 
-function handlePostReply(parentId: number, text: string) {
-    const newReply: UserComment = {
-        id: Date.now(),
-        nickname: currentUserNickname,
-        text: text,
-        topics: [],
-        likes: 0,
-        likedByUser: false,
-        timestamp: new Date().toLocaleTimeString()
-    };
+async function handlePostReply(parentId: string, text: string) {
+    if (!currentUserId || !currentListingId) return;
 
-    // Find parent and add reply
-    const addReplyRecursively = (commentsList: UserComment[]): boolean => {
-        for (let comment of commentsList) {
-            if (comment.id === parentId) {
-                if (!comment.replies) comment.replies = [];
-                comment.replies.push(newReply);
-                return true;
-            }
-            if (comment.replies && addReplyRecursively(comment.replies)) {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    addReplyRecursively(comments);
-    renderComments();
+    // Optimistic Update could go here, but for now let's just wait for DB
+    try {
+        await addDoc(collection(db, "comments"), {
+            listingId: currentListingId,
+            userId: currentUserId,
+            nickname: currentUserNickname,
+            text: text,
+            topics: [],
+            likes: 0,
+            likedBy: [],
+            timestamp: serverTimestamp(),
+            parentId: parentId
+        });
+        // Reload comments to show new reply
+        fetchComments(currentListingId);
+    } catch (e) {
+        console.error("Error adding reply: ", e);
+    }
 }
 
 
-function handlePostComment() {
-    if (!auth.currentUser) return; // Block if not logged in
+async function handlePostComment() {
+    if (!auth.currentUser || !currentListingId || !currentUserId) return; 
     const text = commentInput.value.trim();
     if (!text) return;
 
-    // Get selected topics
     const selectedTopics = Array.from(document.querySelectorAll('.topic-checkbox:checked'))
         .map(cb => (cb as HTMLInputElement).value);
 
-    const newComment: UserComment = {
-        id: Date.now(),
-        nickname: currentUserNickname,
-        text: text,
-        topics: selectedTopics,
-        likes: 0,
-        likedByUser: false,
-        timestamp: new Date().toLocaleTimeString()
-    };
+    try {
+        await addDoc(collection(db, "comments"), {
+            listingId: currentListingId,
+            userId: currentUserId,
+            nickname: currentUserNickname,
+            text: text,
+            topics: selectedTopics,
+            likes: 0,
+            likedBy: [],
+            timestamp: serverTimestamp(),
+            parentId: null
+        });
 
-    comments.push(newComment);
-    commentInput.value = '';
-    
-    // Clear checkboxes
-    document.querySelectorAll('.topic-checkbox').forEach(cb => (cb as HTMLInputElement).checked = false);
-
-    renderComments();
-    
-    // Scroll to bottom for main comments
-    commentsList.scrollTop = commentsList.scrollHeight;
+        commentInput.value = '';
+        document.querySelectorAll('.topic-checkbox').forEach(cb => (cb as HTMLInputElement).checked = false);
+        
+        // Reload comments
+        fetchComments(currentListingId);
+        
+    } catch (e) {
+        console.error("Error adding document: ", e);
+    }
 }
 
-function toggleLike(commentId: number) {
-    const toggleRecursively = (list: UserComment[]): boolean => {
-        for (let comment of list) {
-            if (comment.id === commentId) {
-                if (comment.likedByUser) {
-                    comment.likes--;
-                    comment.likedByUser = false;
-                } else {
-                    comment.likes++;
-                    comment.likedByUser = true;
-                }
-                return true;
-            }
-            if (comment.replies && toggleRecursively(comment.replies)) {
-                return true;
-            }
+async function toggleLike(commentId: string, currentlyLiked: boolean) {
+    if (!currentUserId) return;
+    
+    const commentRef = doc(db, "comments", commentId);
+    
+    try {
+        if (currentlyLiked) {
+            await updateDoc(commentRef, {
+                likes: increment(-1),
+                likedBy: arrayRemove(currentUserId)
+            });
+        } else {
+            await updateDoc(commentRef, {
+                likes: increment(1),
+                likedBy: arrayUnion(currentUserId)
+            });
         }
-        return false;
-    };
-
-    toggleRecursively(comments);
-    renderComments();
+        // Ideally use onSnapshot for real-time updates, but for now re-fetch
+        if (currentListingId) fetchComments(currentListingId);
+    } catch (e) {
+        console.error("Error toggling like: ", e);
+    }
 }
 
 postBtn.addEventListener('click', handlePostComment);
-
-// --- Mock Data ---
-function loadMockComments() {
-    // In the real version, we will fetch from Firebase using currentListingId
-    comments = [
-        { 
-            id: 1, 
-            nickname: "HouseHunter_PT", 
-            text: "Visited this yesterday. The photos make the living room look bigger than it is.", 
-            topics: ["price", "noise"], 
-            likes: 4, 
-            likedByUser: false, 
-            timestamp: "10:30 AM",
-            replies: [
-                {
-                    id: 3,
-                    nickname: "Agent007",
-                    text: "Thanks for the heads up!",
-                    topics: [],
-                    likes: 1,
-                    likedByUser: false,
-                    timestamp: "10:45 AM"
-                }
-            ]
-        },
-        { 
-            id: 2, 
-            nickname: "Maria1990", 
-            text: "Does anyone know if the street is noisy at night?", 
-            topics: ["noise"], 
-            likes: 1, 
-            likedByUser: false, 
-            timestamp: "11:15 AM" 
-        }
-    ];
-    renderComments();
-}

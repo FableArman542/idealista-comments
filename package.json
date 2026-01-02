@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "esbuild src/popup.ts --bundle --outfile=dist/popup.js --format=iife --target=es2020 && esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2020",
-    "watch": "esbuild src/popup.ts --bundle --outfile=dist/popup.js --format=iife --target=es2020 --watch & esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2020 --watch",
+    "build": "esbuild src/popup.ts --bundle --outfile=dist/popup.js --format=iife --target=es2020 && esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2020 && esbuild src/auth.ts --bundle --outfile=dist/auth.js --format=iife --target=es2020",
+    "watch": "esbuild src/popup.ts --bundle --outfile=dist/popup.js --format=iife --target=es2020 --watch & esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2020 --watch & esbuild src/auth.ts --bundle --outfile=dist/auth.js --format=iife --target=es2020 --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
