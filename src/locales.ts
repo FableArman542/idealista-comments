@@ -18,7 +18,9 @@ export const translations = {
         listingPrefix: "Listing #",
         guest: "Guest",
         reply: "Reply",
-        cancel: "Cancel"
+        cancel: "Cancel",
+        anonymous: "Anonymous",
+        postAnonymously: "Post anonymously"
     },
     pt: {
         loadingId: "A carregar ID...",
@@ -37,7 +39,9 @@ export const translations = {
         listingPrefix: "Anúncio #",
         guest: "Visitante",
         reply: "Responder",
-        cancel: "Cancelar"
+        cancel: "Cancelar",
+        anonymous: "Anónimo",
+        postAnonymously: "Publicar anonimamente"
     }
 };
 

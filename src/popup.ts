@@ -12,10 +12,9 @@ interface UserComment {
     likes: number;
     likedBy: string[]; // Array of userIds who liked
     timestamp: any; // Firestore Timestamp
-    replies?: UserComment[]; // Nested replies are usually subcollections or recursive structures, but for simplicity we might fetch them separately or flatten.
-                            // For MVP, let's keep replies as a subcollection or just a separate query. 
-                            // Actually, keeping replies in a top-level collection with 'parentId' is easier for NoSQL.
+    replies?: UserComment[]; 
     parentId?: string | null;
+    isAnonymous?: boolean;
 }
 
 interface PropertyInfo {
@@ -37,6 +36,7 @@ const titleDisplay = document.getElementById('property-title') as HTMLElement;
 const commentsList = document.getElementById('comments-list') as HTMLElement;
 const postBtn = document.getElementById('post-btn') as HTMLButtonElement;
 const commentInput = document.getElementById('comment-input') as HTMLTextAreaElement;
+const anonCheckbox = document.getElementById('anon-check') as HTMLInputElement;
 const inputContainer = document.querySelector('.input-container') as HTMLElement;
 const langSelect = document.getElementById('lang-select') as HTMLSelectElement;
 
@@ -403,9 +403,13 @@ function renderCommentNode(comment: UserComment): HTMLElement {
            </div>`
         : '';
 
+    const displayName = comment.isAnonymous 
+        ? (t.anonymous || "Anonymous") 
+        : comment.nickname;
+
     card.innerHTML = `
         <div class="comment-header">
-            <span>${comment.nickname}</span>
+            <span>${displayName}</span>
             <span style="font-weight:normal; opacity:0.6;">${timeString}</span>
         </div>
         ${topicsHtml}
@@ -463,9 +467,15 @@ function toggleReplyInput(card: HTMLElement, parentId: string) {
         container.style.display = 'flex';
         container.innerHTML = `
             <textarea class="reply-textarea" placeholder="${t.placeholder}"></textarea>
-            <div class="reply-actions">
-                <button class="btn-small btn-cancel">${t.cancel || 'Cancel'}</button>
-                <button class="btn-small btn-post">${t.post}</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="reply-anon-${parentId}" class="reply-anon-check">
+                    <label for="reply-anon-${parentId}" style="font-size: 10px; color: #666;">${t.postAnonymously || 'Post anonymously'}</label>
+                </div>
+                <div class="reply-actions">
+                    <button class="btn-small btn-cancel">${t.cancel || 'Cancel'}</button>
+                    <button class="btn-small btn-post">${t.post}</button>
+                </div>
             </div>
         `;
         
@@ -478,9 +488,12 @@ function toggleReplyInput(card: HTMLElement, parentId: string) {
         const postBtn = container.querySelector('.btn-post');
         postBtn?.addEventListener('click', () => {
             const textarea = container.querySelector('.reply-textarea') as HTMLTextAreaElement;
+            const anonCheck = container.querySelector('.reply-anon-check') as HTMLInputElement;
             const text = textarea.value.trim();
+            const isAnon = anonCheck ? anonCheck.checked : false;
+
             if (text) {
-                handlePostReply(parentId, text);
+                handlePostReply(parentId, text, isAnon);
                 container.style.display = 'none';
                 container.innerHTML = '';
             }
@@ -494,7 +507,7 @@ function toggleReplyInput(card: HTMLElement, parentId: string) {
     }
 }
 
-async function handlePostReply(parentId: string, text: string) {
+async function handlePostReply(parentId: string, text: string, isAnonymous: boolean = false) {
     if (!currentUserId || !currentListingId) return;
 
     // Optimistic Update could go here, but for now let's just wait for DB
@@ -503,6 +516,7 @@ async function handlePostReply(parentId: string, text: string) {
             listingId: currentListingId,
             userId: currentUserId,
             nickname: currentUserNickname,
+            isAnonymous: isAnonymous,
             text: text,
             topics: [],
             likes: 0,
@@ -523,6 +537,8 @@ async function handlePostComment() {
     const text = commentInput.value.trim();
     if (!text) return;
 
+    const isAnonymous = anonCheckbox ? anonCheckbox.checked : false;
+
     const selectedTopics = Array.from(document.querySelectorAll('.topic-checkbox:checked'))
         .map(cb => (cb as HTMLInputElement).value);
 
@@ -531,6 +547,7 @@ async function handlePostComment() {
             listingId: currentListingId,
             userId: currentUserId,
             nickname: currentUserNickname,
+            isAnonymous: isAnonymous,
             text: text,
             topics: selectedTopics,
             likes: 0,
@@ -540,6 +557,7 @@ async function handlePostComment() {
         });
 
         commentInput.value = '';
+        if (anonCheckbox) anonCheckbox.checked = false;
         document.querySelectorAll('.topic-checkbox').forEach(cb => (cb as HTMLInputElement).checked = false);
         
         // Reload comments

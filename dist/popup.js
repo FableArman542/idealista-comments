@@ -19,7 +19,9 @@
       listingPrefix: "Listing #",
       guest: "Guest",
       reply: "Reply",
-      cancel: "Cancel"
+      cancel: "Cancel",
+      anonymous: "Anonymous",
+      postAnonymously: "Post anonymously"
     },
     pt: {
       loadingId: "A carregar ID...",
@@ -38,7 +40,9 @@
       listingPrefix: "An\xFAncio #",
       guest: "Visitante",
       reply: "Responder",
-      cancel: "Cancelar"
+      cancel: "Cancelar",
+      anonymous: "An\xF3nimo",
+      postAnonymously: "Publicar anonimamente"
     }
   };
 
@@ -20595,6 +20599,7 @@ This typically indicates that your device does not have a healthy Internet conne
   var commentsList = document.getElementById("comments-list");
   var postBtn = document.getElementById("post-btn");
   var commentInput = document.getElementById("comment-input");
+  var anonCheckbox = document.getElementById("anon-check");
   var inputContainer = document.querySelector(".input-container");
   var langSelect = document.getElementById("lang-select");
   var signInView = document.getElementById("sign-in-view");
@@ -20854,9 +20859,10 @@ This typically indicates that your device does not have a healthy Internet conne
       return `<span class="topic-tag topic-${topicKey}">${label}</span>`;
     }).join("")}
            </div>` : "";
+    const displayName = comment.isAnonymous ? t.anonymous || "Anonymous" : comment.nickname;
     card.innerHTML = `
         <div class="comment-header">
-            <span>${comment.nickname}</span>
+            <span>${displayName}</span>
             <span style="font-weight:normal; opacity:0.6;">${timeString}</span>
         </div>
         ${topicsHtml}
@@ -20905,9 +20911,15 @@ This typically indicates that your device does not have a healthy Internet conne
       container.style.display = "flex";
       container.innerHTML = `
             <textarea class="reply-textarea" placeholder="${t.placeholder}"></textarea>
-            <div class="reply-actions">
-                <button class="btn-small btn-cancel">${t.cancel || "Cancel"}</button>
-                <button class="btn-small btn-post">${t.post}</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="reply-anon-${parentId}" class="reply-anon-check">
+                    <label for="reply-anon-${parentId}" style="font-size: 10px; color: #666;">${t.postAnonymously || "Post anonymously"}</label>
+                </div>
+                <div class="reply-actions">
+                    <button class="btn-small btn-cancel">${t.cancel || "Cancel"}</button>
+                    <button class="btn-small btn-post">${t.post}</button>
+                </div>
             </div>
         `;
       const cancelBtn = container.querySelector(".btn-cancel");
@@ -20918,9 +20930,11 @@ This typically indicates that your device does not have a healthy Internet conne
       const postBtn2 = container.querySelector(".btn-post");
       postBtn2?.addEventListener("click", () => {
         const textarea = container.querySelector(".reply-textarea");
+        const anonCheck = container.querySelector(".reply-anon-check");
         const text = textarea.value.trim();
+        const isAnon = anonCheck ? anonCheck.checked : false;
         if (text) {
-          handlePostReply(parentId, text);
+          handlePostReply(parentId, text, isAnon);
           container.style.display = "none";
           container.innerHTML = "";
         }
@@ -20931,13 +20945,14 @@ This typically indicates that your device does not have a healthy Internet conne
       container.innerHTML = "";
     }
   }
-  async function handlePostReply(parentId, text) {
+  async function handlePostReply(parentId, text, isAnonymous = false) {
     if (!currentUserId || !currentListingId) return;
     try {
       await addDoc(collection(db, "comments"), {
         listingId: currentListingId,
         userId: currentUserId,
         nickname: currentUserNickname,
+        isAnonymous,
         text,
         topics: [],
         likes: 0,
@@ -20954,12 +20969,14 @@ This typically indicates that your device does not have a healthy Internet conne
     if (!auth.currentUser || !currentListingId || !currentUserId) return;
     const text = commentInput.value.trim();
     if (!text) return;
+    const isAnonymous = anonCheckbox ? anonCheckbox.checked : false;
     const selectedTopics = Array.from(document.querySelectorAll(".topic-checkbox:checked")).map((cb) => cb.value);
     try {
       await addDoc(collection(db, "comments"), {
         listingId: currentListingId,
         userId: currentUserId,
         nickname: currentUserNickname,
+        isAnonymous,
         text,
         topics: selectedTopics,
         likes: 0,
@@ -20968,6 +20985,7 @@ This typically indicates that your device does not have a healthy Internet conne
         parentId: null
       });
       commentInput.value = "";
+      if (anonCheckbox) anonCheckbox.checked = false;
       document.querySelectorAll(".topic-checkbox").forEach((cb) => cb.checked = false);
       fetchComments(currentListingId);
     } catch (e) {
