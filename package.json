@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "build": "esbuild src/popup.ts --bundle --outfile=dist/popup.js --format=iife --target=es2020 && esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2020",
+    "watch": "esbuild src/popup.ts --bundle --outfile=dist/popup.js --format=iife --target=es2020 --watch & esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2020 --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -11,6 +13,10 @@
   "description": "",
   "devDependencies": {
     "@types/chrome": "^0.1.32",
+    "esbuild": "^0.27.2",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "firebase": "^12.7.0"
   }
 }

@@ -18,8 +18,21 @@
         </header>
 
         <div class="user-bar">
-            <label for="nickname" data-i18n="postingAs">Posting as:</label>
-            <input type="text" id="nickname" data-i18n-placeholder="anonUser" placeholder="AnonUser" />
+            <div id="auth-container" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Auth State: Not Signed In -->
+                <div id="sign-in-view">
+                     <button id="google-signin-btn" class="btn-google">Sign in with Google</button>
+                </div>
+                
+                <!-- Auth State: Signed In -->
+                <div id="user-info-view" style="display: none; align-items: center; justify-content: space-between;">
+                     <div style="display: flex; align-items: center; gap: 5px;">
+                         <img id="user-avatar" src="" alt="" style="width: 24px; height: 24px; border-radius: 50%; display: none;">
+                         <span id="user-display-name"></span>
+                     </div>
+                     <button id="sign-out-btn" class="btn-small">Sign Out</button>
+                </div>
+            </div>
         </div>
 
         <div id="comments-list" class="comments-area">
@@ -47,6 +60,6 @@
             </div>
         </div>
     </div>
-    <script src="../dist/popup.js" type="module"></script>
+    <script src="../dist/popup.js?v=2"></script>
 </body>
 </html>

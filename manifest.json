@@ -2,7 +2,14 @@
     "manifest_version": 3,
     "name": "Idealista Chat & Comments",
     "version": "1.0",
-    "permissions": ["activeTab", "storage", "scripting"],
+    "permissions": ["activeTab", "storage", "scripting", "identity"],
+    "oauth2": {
+      "client_id": "446935726598-vdpl2i914qlv6r7pk22ts6khdicfqvt8.apps.googleusercontent.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile"
+      ]
+    },
     "action": {
       "default_popup": "src/popup.html",
       "default_title": "View Comments"

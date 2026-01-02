@@ -1,4 +1,5 @@
-import { translations, Language, TranslationKeys } from './locales.js';
+import { translations, Language, TranslationKeys } from './locales';
+import { auth, signInWithCredential, GoogleAuthProvider, signOut, onAuthStateChanged, User } from './firebase';
 
 // --- Interfaces ---
 interface UserComment {
@@ -30,12 +31,21 @@ const titleDisplay = document.getElementById('property-title') as HTMLElement;
 const commentsList = document.getElementById('comments-list') as HTMLElement;
 const postBtn = document.getElementById('post-btn') as HTMLButtonElement;
 const commentInput = document.getElementById('comment-input') as HTMLTextAreaElement;
-const nicknameInput = document.getElementById('nickname') as HTMLInputElement;
+const inputContainer = document.querySelector('.input-container') as HTMLElement;
 const langSelect = document.getElementById('lang-select') as HTMLSelectElement;
+
+// --- Auth Elements ---
+const signInView = document.getElementById('sign-in-view') as HTMLElement;
+const userInfoView = document.getElementById('user-info-view') as HTMLElement;
+const googleSignInBtn = document.getElementById('google-signin-btn') as HTMLButtonElement;
+const signOutBtn = document.getElementById('sign-out-btn') as HTMLButtonElement;
+const userDisplayName = document.getElementById('user-display-name') as HTMLElement;
+const userAvatar = document.getElementById('user-avatar') as HTMLImageElement;
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     initializeExtension();
+    initializeAuth();
     
     // Auto-detect browser language
     const browserLang = navigator.language.split('-')[0];
@@ -47,11 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Load Settings from storage (overrides auto-detect)
-    chrome.storage.local.get(['nickname', 'language'], (result: { [key: string]: any }) => {
-        if (result.nickname) {
-            currentUserNickname = result.nickname;
-            nicknameInput.value = result.nickname;
-        }
+    chrome.storage.local.get(['language'], (result: { [key: string]: any }) => {
         if (result.language) {
             currentLanguage = result.language as Language;
             if (langSelect) {
@@ -61,13 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update UI after determining final language
         updateUITexts();
     });
-});
-
-// Save nickname on change
-nicknameInput.addEventListener('change', (e) => {
-    const target = e.target as HTMLInputElement;
-    currentUserNickname = target.value || "Guest";
-    chrome.storage.local.set({ nickname: currentUserNickname });
 });
 
 // Language Switch
@@ -132,30 +131,162 @@ function initializeExtension() {
         const activeTab = tabs[0];
         
         // Ensure we are on a valid tab
-        if (activeTab.id) {
-            // Send message to Content Script to get Data
-            chrome.tabs.sendMessage(activeTab.id, { action: "GET_PROPERTY_INFO" }, (response: PropertyInfo) => {
-                const tr = translations[currentLanguage];
-                if (chrome.runtime.lastError || !response || !response.id) {
-                    idDisplay.innerText = tr.noListingFound;
-                    titleDisplay.innerText = tr.navigateMessage;
-                    postBtn.disabled = true;
-                    return;
-                }
-
-                // Update UI with Listing Data
-                currentListingId = response.id;
-                currentListingTitle = response.title;
-                idDisplay.innerText = `${tr.listingPrefix}${response.id}`;
-                titleDisplay.innerText = response.title;
-                // Remove data-i18n attribute so it doesn't get overwritten by updateUITexts
-                titleDisplay.removeAttribute('data-i18n');
-                
-                // MOCK: Load fake comments for demonstration
-                loadMockComments(); 
-            });
+        if (activeTab && activeTab.id) {
+            // Attempt to get data
+            getPropertyInfo(activeTab.id);
+        } else {
+            showErrorState();
         }
     });
+}
+
+function getPropertyInfo(tabId: number) {
+    chrome.tabs.sendMessage(tabId, { action: "GET_PROPERTY_INFO" }, (response: PropertyInfo) => {
+        // Handle message failure (e.g. content script not injected)
+        if (chrome.runtime.lastError) {
+            console.log("Message failed, attempting injection...", chrome.runtime.lastError);
+            injectContentScript(tabId);
+            return;
+        }
+
+        handlePropertyResponse(response);
+    });
+}
+
+function injectContentScript(tabId: number) {
+    chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['dist/content.js']
+    }, () => {
+        if (chrome.runtime.lastError) {
+            console.error("Script injection failed:", chrome.runtime.lastError);
+            showErrorState();
+            return;
+        }
+        
+        // Retry message after injection
+        setTimeout(() => {
+            chrome.tabs.sendMessage(tabId, { action: "GET_PROPERTY_INFO" }, (response: PropertyInfo) => {
+                if (chrome.runtime.lastError) {
+                    showErrorState();
+                } else {
+                    handlePropertyResponse(response);
+                }
+            });
+        }, 100);
+    });
+}
+
+function handlePropertyResponse(response: PropertyInfo) {
+    const tr = translations[currentLanguage];
+    if (!response || !response.id) {
+        showErrorState();
+        return;
+    }
+
+    // Update UI with Listing Data
+    currentListingId = response.id;
+    currentListingTitle = response.title;
+    idDisplay.innerText = `${tr.listingPrefix}${response.id}`;
+    titleDisplay.innerText = response.title;
+    // Remove data-i18n attribute so it doesn't get overwritten by updateUITexts
+    titleDisplay.removeAttribute('data-i18n');
+    postBtn.disabled = false;
+    
+    // MOCK: Load fake comments for demonstration
+    loadMockComments(); 
+}
+
+function showErrorState() {
+    const tr = translations[currentLanguage];
+    idDisplay.innerText = tr.noListingFound;
+    titleDisplay.innerText = tr.navigateMessage;
+    postBtn.disabled = true;
+}
+
+// --- Auth Logic ---
+
+function initializeAuth() {
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            showAuthenticatedUI(user);
+        } else {
+            showUnauthenticatedUI();
+        }
+    });
+
+    if (googleSignInBtn) {
+        googleSignInBtn.addEventListener('click', handleGoogleSignIn);
+    }
+    if (signOutBtn) {
+        signOutBtn.addEventListener('click', handleSignOut);
+    }
+}
+
+async function handleGoogleSignIn() {
+    try {
+        chrome.identity.getAuthToken({ interactive: true }, async function(token) {
+            if (chrome.runtime.lastError || !token) {
+                console.error("Identity Error:", chrome.runtime.lastError);
+                return;
+            }
+            
+            // Create a credential with the token
+            const credential = GoogleAuthProvider.credential(null, token as string);
+            
+            // Sign in with the credential
+            await signInWithCredential(auth, credential);
+        });
+    } catch (error) {
+        console.error("Sign In Error:", error);
+    }
+}
+
+async function handleSignOut() {
+    try {
+        await signOut(auth);
+    } catch (error) {
+        console.error("Sign Out Error:", error);
+    }
+}
+
+function showAuthenticatedUI(user: User) {
+    if (signInView) signInView.style.display = 'none';
+    if (userInfoView) userInfoView.style.display = 'flex';
+    
+    // Update user info
+    if (userDisplayName) userDisplayName.textContent = user.displayName || user.email || 'User';
+    
+    if (userAvatar) {
+        if (user.photoURL) {
+            userAvatar.src = user.photoURL;
+            userAvatar.style.display = 'block';
+        } else {
+            userAvatar.style.display = 'none';
+        }
+    }
+
+    // Update global nickname
+    currentUserNickname = user.displayName || "User";
+    
+    // Show input container
+    if (inputContainer) inputContainer.style.display = 'flex';
+    
+    // Re-render comments to enable actions
+    renderComments();
+}
+
+function showUnauthenticatedUI() {
+    if (signInView) signInView.style.display = 'block';
+    if (userInfoView) userInfoView.style.display = 'none';
+    
+    currentUserNickname = "Guest";
+    
+    // Hide input container
+    if (inputContainer) inputContainer.style.display = 'none';
+    
+    // Re-render comments to disable actions
+    renderComments();
 }
 
 function renderComments() {
@@ -184,6 +315,10 @@ function renderCommentNode(comment: UserComment): HTMLElement {
     
     const likeClass = comment.likedByUser ? 'liked' : '';
     
+    // Check if user is logged in
+    const isLoggedIn = auth.currentUser !== null;
+    const actionStyle = isLoggedIn ? '' : 'opacity: 0.5; cursor: not-allowed;';
+    
     // Generate Topic Tags HTML
     const topicsHtml = comment.topics && comment.topics.length > 0 
         ? `<div class="topic-tags">
@@ -205,8 +340,8 @@ function renderCommentNode(comment: UserComment): HTMLElement {
             ${comment.text}
         </div>
         <div class="comment-actions">
-            <span class="action-btn like-btn ${likeClass}" data-action="like">♥ ${comment.likes}</span>
-            <span class="action-btn reply-btn" data-action="reply">${t.reply || 'Reply'}</span>
+            <span class="action-btn like-btn ${likeClass}" style="${actionStyle}" data-action="like">♥ ${comment.likes}</span>
+            <span class="action-btn reply-btn" style="${actionStyle}" data-action="reply">${t.reply || 'Reply'}</span>
         </div>
         <div class="reply-input-container" style="display:none;"></div>
         <div class="replies-container"></div>
@@ -216,12 +351,14 @@ function renderCommentNode(comment: UserComment): HTMLElement {
     const likeBtn = card.querySelector('.like-btn');
     likeBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (!auth.currentUser) return; // Block if not logged in
         toggleLike(comment.id);
     });
 
     const replyBtn = card.querySelector('.reply-btn');
     replyBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (!auth.currentUser) return; // Block if not logged in
         toggleReplyInput(card, comment.id);
     });
 
@@ -306,6 +443,7 @@ function handlePostReply(parentId: number, text: string) {
 
 
 function handlePostComment() {
+    if (!auth.currentUser) return; // Block if not logged in
     const text = commentInput.value.trim();
     if (!text) return;
 

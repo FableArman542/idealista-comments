@@ -45,9 +45,21 @@ h2 { margin: 0; font-size: 18px; font-weight: 800; }
     background: #fff;
     border-bottom: 1px solid #eee;
     font-size: 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+}
+
+.btn-google {
+    background-color: #4285F4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: 500;
+}
+.btn-google:hover {
+    background-color: #357AE8;
 }
 
 input#nickname {
