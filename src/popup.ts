@@ -3,6 +3,7 @@ interface UserComment {
     id: number;
     nickname: string;
     text: string;
+    topics: string[];
     likes: number;
     likedByUser: boolean; // Mocking local state
     timestamp: string;
@@ -89,12 +90,20 @@ function renderComments() {
         card.className = 'comment-card';
         
         const likeClass = comment.likedByUser ? 'liked' : '';
+        
+        // Generate Topic Tags HTML
+        const topicsHtml = comment.topics && comment.topics.length > 0 
+            ? `<div class="topic-tags">
+                ${comment.topics.map(t => `<span class="topic-tag topic-${t}">${t.charAt(0).toUpperCase() + t.slice(1)}</span>`).join('')}
+               </div>`
+            : '';
 
         card.innerHTML = `
             <div class="comment-header">
                 <span>${comment.nickname}</span>
                 <span style="font-weight:normal; opacity:0.6;">${comment.timestamp}</span>
             </div>
+            ${topicsHtml}
             <div class="comment-body">
                 ${comment.text}
             </div>
@@ -119,10 +128,15 @@ function handlePostComment() {
     const text = commentInput.value.trim();
     if (!text) return;
 
+    // Get selected topics
+    const selectedTopics = Array.from(document.querySelectorAll('.topic-checkbox:checked'))
+        .map(cb => (cb as HTMLInputElement).value);
+
     const newComment: UserComment = {
         id: Date.now(),
         nickname: currentUserNickname,
         text: text,
+        topics: selectedTopics,
         likes: 0,
         likedByUser: false,
         timestamp: new Date().toLocaleTimeString()
@@ -130,6 +144,10 @@ function handlePostComment() {
 
     comments.push(newComment);
     commentInput.value = '';
+    
+    // Clear checkboxes
+    document.querySelectorAll('.topic-checkbox').forEach(cb => (cb as HTMLInputElement).checked = false);
+
     renderComments();
 }
 
@@ -153,8 +171,8 @@ postBtn.addEventListener('click', handlePostComment);
 function loadMockComments() {
     // In the real version, we will fetch from Firebase using currentListingId
     comments = [
-        { id: 1, nickname: "HouseHunter_PT", text: "Visited this yesterday. The photos make the living room look bigger than it is.", likes: 4, likedByUser: false, timestamp: "10:30 AM" },
-        { id: 2, nickname: "Maria1990", text: "Does anyone know if the street is noisy at night?", likes: 1, likedByUser: false, timestamp: "11:15 AM" }
+        { id: 1, nickname: "HouseHunter_PT", text: "Visited this yesterday. The photos make the living room look bigger than it is.", topics: ["price", "noise"], likes: 4, likedByUser: false, timestamp: "10:30 AM" },
+        { id: 2, nickname: "Maria1990", text: "Does anyone know if the street is noisy at night?", topics: ["noise"], likes: 1, likedByUser: false, timestamp: "11:15 AM" }
     ];
     renderComments();
 }

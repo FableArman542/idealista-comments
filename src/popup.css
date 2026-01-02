@@ -1,6 +1,6 @@
 body {
     width: 350px;
-    height: 500px;
+    height: 550px; /* Increased height for topics */
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f9f9f9;
@@ -68,6 +68,27 @@ input#nickname {
     font-size: 11px;
 }
 
+.topic-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+
+.topic-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+}
+
+.topic-price { background-color: #4CAF50; }
+.topic-noise { background-color: #F44336; }
+.topic-security { background-color: #2196F3; }
+.topic-accesses { background-color: #FF9800; }
+.topic-default { background-color: #9E9E9E; }
+
 .comment-actions {
     margin-top: 8px;
     display: flex;
@@ -83,10 +104,46 @@ input#nickname {
 .heart-icon:hover { transform: scale(1.2); }
 .liked { color: #e0245e; }
 
-.input-area {
-    padding: 15px;
+.input-container {
     background: white;
     border-top: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+}
+
+.topic-selector {
+    padding: 8px 15px 0 15px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.topic-checkbox {
+    display: none;
+}
+
+.topic-label {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.topic-checkbox:checked + .topic-label {
+    border-color: transparent;
+    color: white;
+}
+
+.topic-checkbox:checked + .topic-label.lbl-price { background-color: #4CAF50; }
+.topic-checkbox:checked + .topic-label.lbl-noise { background-color: #F44336; }
+.topic-checkbox:checked + .topic-label.lbl-security { background-color: #2196F3; }
+.topic-checkbox:checked + .topic-label.lbl-accesses { background-color: #FF9800; }
+
+.input-area {
+    padding: 10px 15px 15px 15px;
     display: flex;
     gap: 10px;
 }
