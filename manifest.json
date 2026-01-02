@@ -1,0 +1,16 @@
+{
+    "manifest_version": 3,
+    "name": "Idealista Chat & Comments",
+    "version": "1.0",
+    "permissions": ["activeTab", "storage", "scripting"],
+    "action": {
+      "default_popup": "src/popup.html",
+      "default_title": "View Comments"
+    },
+    "content_scripts": [
+      {
+        "matches": ["*://*.idealista.pt/imovel/*"],
+        "js": ["dist/content.js"]
+      }
+    ]
+  }

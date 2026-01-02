@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h2 id="property-id">Loading ID...</h2>
+            <p id="property-title" class="truncate">Detecting listing...</p>
+        </header>
+
+        <div class="user-bar">
+            <label for="nickname">Posting as:</label>
+            <input type="text" id="nickname" placeholder="AnonUser" />
+        </div>
+
+        <div id="comments-list" class="comments-area">
+            <div class="empty-state">No comments yet. Be the first!</div>
+        </div>
+
+        <div class="input-area">
+            <textarea id="comment-input" placeholder="Is the price fair? How is the neighborhood?"></textarea>
+            <button id="post-btn">Post</button>
+        </div>
+    </div>
+    <script src="../dist/popup.js" type="module"></script>
+</body>
+</html>
