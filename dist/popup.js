@@ -20527,6 +20527,9 @@ This typically indicates that your device does not have a healthy Internet conne
     (t = getModularInstance(t)) || t instanceof FieldPath ? __PRIVATE_parseUpdateVarargs(s, "updateDoc", e._key, t, n, r) : __PRIVATE_parseUpdateData(s, "updateDoc", e._key, t);
     return executeWrite(i, [o.toMutation(e._key, Precondition.exists(true))]);
   }
+  function deleteDoc(e) {
+    return executeWrite(__PRIVATE_cast(e.firestore, Firestore), [new __PRIVATE_DeleteMutation(e._key, Precondition.none())]);
+  }
   function addDoc(e, t) {
     const n = __PRIVATE_cast(e.firestore, Firestore), r = doc(e), i = __PRIVATE_applyFirestoreDataConverter(e.converter, t);
     return executeWrite(n, [__PRIVATE_parseSetData(__PRIVATE_newUserDataReader(e.firestore), "addDoc", r._key, i, null !== e.converter, {}).toMutation(r._key, Precondition.exists(false))]).then((() => r));
@@ -20836,6 +20839,7 @@ This typically indicates that your device does not have a healthy Internet conne
     card.dataset.id = comment.id;
     const isLoggedIn = auth.currentUser !== null;
     const likedByUser = currentUserId ? comment.likedBy && comment.likedBy.includes(currentUserId) : false;
+    const isOwner = currentUserId && comment.userId === currentUserId;
     const likeClass = likedByUser ? "liked" : "";
     const actionStyle = isLoggedIn ? "" : "opacity: 0.5; cursor: not-allowed;";
     let timeString = "";
@@ -20862,6 +20866,7 @@ This typically indicates that your device does not have a healthy Internet conne
         <div class="comment-actions">
             <span class="action-btn like-btn ${likeClass}" style="${actionStyle}" data-action="like">\u2665 ${comment.likes || 0}</span>
             <span class="action-btn reply-btn" style="${actionStyle}" data-action="reply">${t.reply || "Reply"}</span>
+            ${isOwner ? `<span class="action-btn delete-btn" style="color: red;">Delete</span>` : ""}
         </div>
         <div class="reply-input-container" style="display:none;"></div>
         <div class="replies-container"></div>
@@ -20877,6 +20882,13 @@ This typically indicates that your device does not have a healthy Internet conne
       e.stopPropagation();
       if (!auth.currentUser) return;
       toggleReplyInput(card, comment.id);
+    });
+    const deleteBtn = card.querySelector(".delete-btn");
+    deleteBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (confirm("Are you sure you want to delete this comment?")) {
+        handleDeleteComment(comment.id);
+      }
     });
     const repliesContainer = card.querySelector(".replies-container");
     if (comment.replies && comment.replies.length > 0) {
@@ -20960,6 +20972,15 @@ This typically indicates that your device does not have a healthy Internet conne
       fetchComments(currentListingId);
     } catch (e) {
       console.error("Error adding document: ", e);
+    }
+  }
+  async function handleDeleteComment(commentId) {
+    if (!currentUserId) return;
+    try {
+      await deleteDoc(doc(db, "comments", commentId));
+      if (currentListingId) fetchComments(currentListingId);
+    } catch (e) {
+      console.error("Error deleting comment: ", e);
     }
   }
   async function toggleLike(commentId, currentlyLiked) {

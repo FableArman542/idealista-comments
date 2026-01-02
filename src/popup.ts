@@ -1,5 +1,5 @@
 import { translations, Language, TranslationKeys } from './locales';
-import { auth, signInWithCredential, GoogleAuthProvider, signOut, onAuthStateChanged, User, db, collection, addDoc, getDocs, query, where, doc, updateDoc, increment, arrayUnion, arrayRemove, serverTimestamp, Timestamp } from './firebase';
+import { auth, signInWithCredential, GoogleAuthProvider, signOut, onAuthStateChanged, User, db, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove, serverTimestamp, Timestamp } from './firebase';
 
 // --- Interfaces ---
 interface UserComment {
@@ -381,6 +381,7 @@ function renderCommentNode(comment: UserComment): HTMLElement {
     // Check if user is logged in and liked
     const isLoggedIn = auth.currentUser !== null;
     const likedByUser = currentUserId ? (comment.likedBy && comment.likedBy.includes(currentUserId)) : false;
+    const isOwner = currentUserId && comment.userId === currentUserId;
     const likeClass = likedByUser ? 'liked' : '';
     const actionStyle = isLoggedIn ? '' : 'opacity: 0.5; cursor: not-allowed;';
     
@@ -414,6 +415,7 @@ function renderCommentNode(comment: UserComment): HTMLElement {
         <div class="comment-actions">
             <span class="action-btn like-btn ${likeClass}" style="${actionStyle}" data-action="like">♥ ${comment.likes || 0}</span>
             <span class="action-btn reply-btn" style="${actionStyle}" data-action="reply">${t.reply || 'Reply'}</span>
+            ${isOwner ? `<span class="action-btn delete-btn" style="color: red;">Delete</span>` : ''}
         </div>
         <div class="reply-input-container" style="display:none;"></div>
         <div class="replies-container"></div>
@@ -432,6 +434,14 @@ function renderCommentNode(comment: UserComment): HTMLElement {
         e.stopPropagation();
         if (!auth.currentUser) return;
         toggleReplyInput(card, comment.id);
+    });
+
+    const deleteBtn = card.querySelector('.delete-btn');
+    deleteBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm("Are you sure you want to delete this comment?")) {
+             handleDeleteComment(comment.id);
+        }
     });
 
     // Render Nested Replies
@@ -537,6 +547,18 @@ async function handlePostComment() {
         
     } catch (e) {
         console.error("Error adding document: ", e);
+    }
+}
+
+async function handleDeleteComment(commentId: string) {
+    if (!currentUserId) return;
+
+    try {
+        await deleteDoc(doc(db, "comments", commentId));
+        // Refresh comments
+        if (currentListingId) fetchComments(currentListingId);
+    } catch (e) {
+        console.error("Error deleting comment: ", e);
     }
 }
 

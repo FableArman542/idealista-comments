@@ -13,7 +13,7 @@ const firebaseConfig = {
   measurementId: "G-ZZ0SPCQ2TX"
 };
 
-import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, increment, arrayUnion, arrayRemove, serverTimestamp, Timestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove, serverTimestamp, Timestamp } from "firebase/firestore";
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -23,5 +23,5 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-export { app, auth, db, provider, signInWithCredential, User, signOut, onAuthStateChanged, GoogleAuthProvider, collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, increment, arrayUnion, arrayRemove, serverTimestamp, Timestamp, signInWithPopup };
+export { app, auth, db, provider, signInWithCredential, User, signOut, onAuthStateChanged, GoogleAuthProvider, collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove, serverTimestamp, Timestamp, signInWithPopup };
 
