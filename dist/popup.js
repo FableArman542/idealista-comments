@@ -683,14 +683,6 @@
     });
   }
   var PATTERN = /\{\$([^}]+)}/g;
-  function isEmpty(obj) {
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        return false;
-      }
-    }
-    return true;
-  }
   function deepEqual(a, b) {
     if (a === b) {
       return true;
@@ -2175,9 +2167,6 @@
       debugFail(message);
     }
   }
-  function _getCurrentUrl() {
-    return typeof self !== "undefined" && self.location?.href || "";
-  }
   function _isHttpOrHttps() {
     return _getCurrentScheme() === "http:" || _getCurrentScheme() === "https:";
   }
@@ -3580,9 +3569,6 @@
   function _isIOS(ua = getUA()) {
     return /iphone|ipad|ipod/i.test(ua) || /macintosh/i.test(ua) && /mobile/i.test(ua);
   }
-  function _isIOSStandalone(ua = getUA()) {
-    return _isIOS(ua) && !!window.navigator?.standalone;
-  }
   function _isIE10() {
     return isIE() && document.documentMode === 10;
   }
@@ -4326,9 +4312,6 @@
   function _recaptchaEnterpriseScriptUrl() {
     return externalJSProvider.recaptchaEnterpriseScript;
   }
-  function _gapiScriptUrl() {
-    return externalJSProvider.gapiScript;
-  }
   function _generateCallbackName(prefix) {
     return `__${prefix}${Math.floor(Math.random() * 1e6)}`;
   }
@@ -4622,109 +4605,6 @@
       auth2._updateErrorMap(deps.errorMap);
     }
     auth2._initializeWithPersistence(hierarchy, deps?.popupRedirectResolver);
-  }
-  function connectAuthEmulator(auth2, url, options) {
-    const authInternal = _castAuth(auth2);
-    _assert(
-      /^https?:\/\//.test(url),
-      authInternal,
-      "invalid-emulator-scheme"
-      /* AuthErrorCode.INVALID_EMULATOR_SCHEME */
-    );
-    const disableWarnings = !!options?.disableWarnings;
-    const protocol = extractProtocol(url);
-    const { host, port } = extractHostAndPort(url);
-    const portStr = port === null ? "" : `:${port}`;
-    const emulator = { url: `${protocol}//${host}${portStr}/` };
-    const emulatorConfig = Object.freeze({
-      host,
-      port,
-      protocol: protocol.replace(":", ""),
-      options: Object.freeze({ disableWarnings })
-    });
-    if (!authInternal._canInitEmulator) {
-      _assert(
-        authInternal.config.emulator && authInternal.emulatorConfig,
-        authInternal,
-        "emulator-config-failed"
-        /* AuthErrorCode.EMULATOR_CONFIG_FAILED */
-      );
-      _assert(
-        deepEqual(emulator, authInternal.config.emulator) && deepEqual(emulatorConfig, authInternal.emulatorConfig),
-        authInternal,
-        "emulator-config-failed"
-        /* AuthErrorCode.EMULATOR_CONFIG_FAILED */
-      );
-      return;
-    }
-    authInternal.config.emulator = emulator;
-    authInternal.emulatorConfig = emulatorConfig;
-    authInternal.settings.appVerificationDisabledForTesting = true;
-    if (isCloudWorkstation(host)) {
-      void pingServer(`${protocol}//${host}${portStr}`);
-      updateEmulatorBanner("Auth", true);
-    } else if (!disableWarnings) {
-      emitEmulatorWarning();
-    }
-  }
-  function extractProtocol(url) {
-    const protocolEnd = url.indexOf(":");
-    return protocolEnd < 0 ? "" : url.substr(0, protocolEnd + 1);
-  }
-  function extractHostAndPort(url) {
-    const protocol = extractProtocol(url);
-    const authority = /(\/\/)?([^?#/]+)/.exec(url.substr(protocol.length));
-    if (!authority) {
-      return { host: "", port: null };
-    }
-    const hostAndPort = authority[2].split("@").pop() || "";
-    const bracketedIPv6 = /^(\[[^\]]+\])(:|$)/.exec(hostAndPort);
-    if (bracketedIPv6) {
-      const host = bracketedIPv6[1];
-      return { host, port: parsePort(hostAndPort.substr(host.length + 1)) };
-    } else {
-      const [host, port] = hostAndPort.split(":");
-      return { host, port: parsePort(port) };
-    }
-  }
-  function parsePort(portStr) {
-    if (!portStr) {
-      return null;
-    }
-    const port = Number(portStr);
-    if (isNaN(port)) {
-      return null;
-    }
-    return port;
-  }
-  function emitEmulatorWarning() {
-    function attachBanner() {
-      const el = document.createElement("p");
-      const sty = el.style;
-      el.innerText = "Running in emulator mode. Do not use with production credentials.";
-      sty.position = "fixed";
-      sty.width = "100%";
-      sty.backgroundColor = "#ffffff";
-      sty.border = ".1em solid #000000";
-      sty.color = "#b50000";
-      sty.bottom = "0px";
-      sty.left = "0px";
-      sty.margin = "0px";
-      sty.zIndex = "10000";
-      sty.textAlign = "center";
-      el.classList.add("firebase-emulator-warning");
-      document.body.appendChild(el);
-    }
-    if (typeof console !== "undefined" && typeof console.info === "function") {
-      console.info("WARNING: You are using the Auth Emulator, which is intended for local testing only.  Do not use with production credentials.");
-    }
-    if (typeof window !== "undefined" && typeof document !== "undefined") {
-      if (document.readyState === "loading") {
-        window.addEventListener("DOMContentLoaded", attachBanner);
-      } else {
-        attachBanner();
-      }
-    }
   }
   var AuthCredential = class {
     /** @internal */
@@ -5667,15 +5547,6 @@
     }
     return userCredential;
   }
-  async function signInWithCredential(auth2, credential) {
-    return _signInWithCredential(_castAuth(auth2), credential);
-  }
-  function onIdTokenChanged(auth2, nextOrObserver, error, completed) {
-    return getModularInstance(auth2).onIdTokenChanged(nextOrObserver, error, completed);
-  }
-  function beforeAuthStateChanged(auth2, callback, onAbort) {
-    return getModularInstance(auth2).beforeAuthStateChanged(callback, onAbort);
-  }
   function onAuthStateChanged(auth2, nextOrObserver, error, completed) {
     return getModularInstance(auth2).onAuthStateChanged(nextOrObserver, error, completed);
   }
@@ -5983,7 +5854,6 @@
     }
   };
   BrowserSessionPersistence.type = "SESSION";
-  var browserSessionPersistence = BrowserSessionPersistence;
   function _allSettled(promises) {
     return Promise.all(promises.map(async (promise) => {
       try {
@@ -6199,9 +6069,6 @@
   };
   function _window() {
     return window;
-  }
-  function _setWindowLocation(url) {
-    _window().location.href = url;
   }
   function _isWorker() {
     return typeof _window()["WorkerGlobalScope"] !== "undefined" && typeof _window()["importScripts"] === "function";
@@ -6523,7 +6390,6 @@
     }
   };
   IndexedDBLocalPersistence.type = "LOCAL";
-  var indexedDBLocalPersistence = IndexedDBLocalPersistence;
   function startSignInPhoneMfa(auth2, request) {
     return _performApiRequest(auth2, "POST", "/v2/accounts/mfaSignIn:start", _addTidIfNecessary(auth2, request));
   }
@@ -6858,18 +6724,6 @@
   };
   PhoneAuthProvider.PROVIDER_ID = "phone";
   PhoneAuthProvider.PHONE_SIGN_IN_METHOD = "phone";
-  function _withDefaultResolver(auth2, resolverOverride) {
-    if (resolverOverride) {
-      return _getInstance(resolverOverride);
-    }
-    _assert(
-      auth2._popupRedirectResolver,
-      auth2,
-      "argument-error"
-      /* AuthErrorCode.ARGUMENT_ERROR */
-    );
-    return auth2._popupRedirectResolver;
-  }
   var IdpCredential = class extends AuthCredential {
     constructor(params) {
       super(
@@ -7101,586 +6955,10 @@
     }
   };
   PopupOperation.currentPopupAction = null;
-  var PENDING_REDIRECT_KEY = "pendingRedirect";
-  var redirectOutcomeMap = /* @__PURE__ */ new Map();
-  var RedirectAction = class extends AbstractPopupRedirectOperation {
-    constructor(auth2, resolver, bypassAuthState = false) {
-      super(auth2, [
-        "signInViaRedirect",
-        "linkViaRedirect",
-        "reauthViaRedirect",
-        "unknown"
-        /* AuthEventType.UNKNOWN */
-      ], resolver, void 0, bypassAuthState);
-      this.eventId = null;
-    }
-    /**
-     * Override the execute function; if we already have a redirect result, then
-     * just return it.
-     */
-    async execute() {
-      let readyOutcome = redirectOutcomeMap.get(this.auth._key());
-      if (!readyOutcome) {
-        try {
-          const hasPendingRedirect = await _getAndClearPendingRedirectStatus(this.resolver, this.auth);
-          const result = hasPendingRedirect ? await super.execute() : null;
-          readyOutcome = () => Promise.resolve(result);
-        } catch (e) {
-          readyOutcome = () => Promise.reject(e);
-        }
-        redirectOutcomeMap.set(this.auth._key(), readyOutcome);
-      }
-      if (!this.bypassAuthState) {
-        redirectOutcomeMap.set(this.auth._key(), () => Promise.resolve(null));
-      }
-      return readyOutcome();
-    }
-    async onAuthEvent(event) {
-      if (event.type === "signInViaRedirect") {
-        return super.onAuthEvent(event);
-      } else if (event.type === "unknown") {
-        this.resolve(null);
-        return;
-      }
-      if (event.eventId) {
-        const user = await this.auth._redirectUserForId(event.eventId);
-        if (user) {
-          this.user = user;
-          return super.onAuthEvent(event);
-        } else {
-          this.resolve(null);
-        }
-      }
-    }
-    async onExecution() {
-    }
-    cleanUp() {
-    }
-  };
-  async function _getAndClearPendingRedirectStatus(resolver, auth2) {
-    const key = pendingRedirectKey(auth2);
-    const persistence = resolverPersistence(resolver);
-    if (!await persistence._isAvailable()) {
-      return false;
-    }
-    const hasPendingRedirect = await persistence._get(key) === "true";
-    await persistence._remove(key);
-    return hasPendingRedirect;
-  }
-  function _overrideRedirectResult(auth2, result) {
-    redirectOutcomeMap.set(auth2._key(), result);
-  }
-  function resolverPersistence(resolver) {
-    return _getInstance(resolver._redirectPersistence);
-  }
-  function pendingRedirectKey(auth2) {
-    return _persistenceKeyName(PENDING_REDIRECT_KEY, auth2.config.apiKey, auth2.name);
-  }
-  async function _getRedirectResult(auth2, resolverExtern, bypassAuthState = false) {
-    if (_isFirebaseServerApp(auth2.app)) {
-      return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(auth2));
-    }
-    const authInternal = _castAuth(auth2);
-    const resolver = _withDefaultResolver(authInternal, resolverExtern);
-    const action = new RedirectAction(authInternal, resolver, bypassAuthState);
-    const result = await action.execute();
-    if (result && !bypassAuthState) {
-      delete result.user._redirectEventId;
-      await authInternal._persistUserIfCurrent(result.user);
-      await authInternal._setRedirectUser(null, resolverExtern);
-    }
-    return result;
-  }
   var EVENT_DUPLICATION_CACHE_DURATION_MS = 10 * 60 * 1e3;
-  var AuthEventManager = class {
-    constructor(auth2) {
-      this.auth = auth2;
-      this.cachedEventUids = /* @__PURE__ */ new Set();
-      this.consumers = /* @__PURE__ */ new Set();
-      this.queuedRedirectEvent = null;
-      this.hasHandledPotentialRedirect = false;
-      this.lastProcessedEventTime = Date.now();
-    }
-    registerConsumer(authEventConsumer) {
-      this.consumers.add(authEventConsumer);
-      if (this.queuedRedirectEvent && this.isEventForConsumer(this.queuedRedirectEvent, authEventConsumer)) {
-        this.sendToConsumer(this.queuedRedirectEvent, authEventConsumer);
-        this.saveEventToCache(this.queuedRedirectEvent);
-        this.queuedRedirectEvent = null;
-      }
-    }
-    unregisterConsumer(authEventConsumer) {
-      this.consumers.delete(authEventConsumer);
-    }
-    onEvent(event) {
-      if (this.hasEventBeenHandled(event)) {
-        return false;
-      }
-      let handled = false;
-      this.consumers.forEach((consumer) => {
-        if (this.isEventForConsumer(event, consumer)) {
-          handled = true;
-          this.sendToConsumer(event, consumer);
-          this.saveEventToCache(event);
-        }
-      });
-      if (this.hasHandledPotentialRedirect || !isRedirectEvent(event)) {
-        return handled;
-      }
-      this.hasHandledPotentialRedirect = true;
-      if (!handled) {
-        this.queuedRedirectEvent = event;
-        handled = true;
-      }
-      return handled;
-    }
-    sendToConsumer(event, consumer) {
-      if (event.error && !isNullRedirectEvent(event)) {
-        const code = event.error.code?.split("auth/")[1] || "internal-error";
-        consumer.onError(_createError(this.auth, code));
-      } else {
-        consumer.onAuthEvent(event);
-      }
-    }
-    isEventForConsumer(event, consumer) {
-      const eventIdMatches = consumer.eventId === null || !!event.eventId && event.eventId === consumer.eventId;
-      return consumer.filter.includes(event.type) && eventIdMatches;
-    }
-    hasEventBeenHandled(event) {
-      if (Date.now() - this.lastProcessedEventTime >= EVENT_DUPLICATION_CACHE_DURATION_MS) {
-        this.cachedEventUids.clear();
-      }
-      return this.cachedEventUids.has(eventUid(event));
-    }
-    saveEventToCache(event) {
-      this.cachedEventUids.add(eventUid(event));
-      this.lastProcessedEventTime = Date.now();
-    }
-  };
-  function eventUid(e) {
-    return [e.type, e.eventId, e.sessionId, e.tenantId].filter((v) => v).join("-");
-  }
-  function isNullRedirectEvent({ type, error }) {
-    return type === "unknown" && error?.code === `auth/${"no-auth-event"}`;
-  }
-  function isRedirectEvent(event) {
-    switch (event.type) {
-      case "signInViaRedirect":
-      case "linkViaRedirect":
-      case "reauthViaRedirect":
-        return true;
-      case "unknown":
-        return isNullRedirectEvent(event);
-      default:
-        return false;
-    }
-  }
-  async function _getProjectConfig(auth2, request = {}) {
-    return _performApiRequest(auth2, "GET", "/v1/projects", request);
-  }
-  var IP_ADDRESS_REGEX = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
-  var HTTP_REGEX = /^https?/;
-  async function _validateOrigin(auth2) {
-    if (auth2.config.emulator) {
-      return;
-    }
-    const { authorizedDomains } = await _getProjectConfig(auth2);
-    for (const domain of authorizedDomains) {
-      try {
-        if (matchDomain(domain)) {
-          return;
-        }
-      } catch {
-      }
-    }
-    _fail(
-      auth2,
-      "unauthorized-domain"
-      /* AuthErrorCode.INVALID_ORIGIN */
-    );
-  }
-  function matchDomain(expected) {
-    const currentUrl = _getCurrentUrl();
-    const { protocol, hostname } = new URL(currentUrl);
-    if (expected.startsWith("chrome-extension://")) {
-      const ceUrl = new URL(expected);
-      if (ceUrl.hostname === "" && hostname === "") {
-        return protocol === "chrome-extension:" && expected.replace("chrome-extension://", "") === currentUrl.replace("chrome-extension://", "");
-      }
-      return protocol === "chrome-extension:" && ceUrl.hostname === hostname;
-    }
-    if (!HTTP_REGEX.test(protocol)) {
-      return false;
-    }
-    if (IP_ADDRESS_REGEX.test(expected)) {
-      return hostname === expected;
-    }
-    const escapedDomainPattern = expected.replace(/\./g, "\\.");
-    const re = new RegExp("^(.+\\." + escapedDomainPattern + "|" + escapedDomainPattern + ")$", "i");
-    return re.test(hostname);
-  }
   var NETWORK_TIMEOUT = new Delay(3e4, 6e4);
-  function resetUnloadedGapiModules() {
-    const beacon = _window().___jsl;
-    if (beacon?.H) {
-      for (const hint of Object.keys(beacon.H)) {
-        beacon.H[hint].r = beacon.H[hint].r || [];
-        beacon.H[hint].L = beacon.H[hint].L || [];
-        beacon.H[hint].r = [...beacon.H[hint].L];
-        if (beacon.CP) {
-          for (let i = 0; i < beacon.CP.length; i++) {
-            beacon.CP[i] = null;
-          }
-        }
-      }
-    }
-  }
-  function loadGapi(auth2) {
-    return new Promise((resolve, reject) => {
-      function loadGapiIframe() {
-        resetUnloadedGapiModules();
-        gapi.load("gapi.iframes", {
-          callback: () => {
-            resolve(gapi.iframes.getContext());
-          },
-          ontimeout: () => {
-            resetUnloadedGapiModules();
-            reject(_createError(
-              auth2,
-              "network-request-failed"
-              /* AuthErrorCode.NETWORK_REQUEST_FAILED */
-            ));
-          },
-          timeout: NETWORK_TIMEOUT.get()
-        });
-      }
-      if (_window().gapi?.iframes?.Iframe) {
-        resolve(gapi.iframes.getContext());
-      } else if (!!_window().gapi?.load) {
-        loadGapiIframe();
-      } else {
-        const cbName = _generateCallbackName("iframefcb");
-        _window()[cbName] = () => {
-          if (!!gapi.load) {
-            loadGapiIframe();
-          } else {
-            reject(_createError(
-              auth2,
-              "network-request-failed"
-              /* AuthErrorCode.NETWORK_REQUEST_FAILED */
-            ));
-          }
-        };
-        return _loadJS(`${_gapiScriptUrl()}?onload=${cbName}`).catch((e) => reject(e));
-      }
-    }).catch((error) => {
-      cachedGApiLoader = null;
-      throw error;
-    });
-  }
-  var cachedGApiLoader = null;
-  function _loadGapi(auth2) {
-    cachedGApiLoader = cachedGApiLoader || loadGapi(auth2);
-    return cachedGApiLoader;
-  }
   var PING_TIMEOUT = new Delay(5e3, 15e3);
-  var IFRAME_PATH = "__/auth/iframe";
-  var EMULATED_IFRAME_PATH = "emulator/auth/iframe";
-  var IFRAME_ATTRIBUTES = {
-    style: {
-      position: "absolute",
-      top: "-100px",
-      width: "1px",
-      height: "1px"
-    },
-    "aria-hidden": "true",
-    tabindex: "-1"
-  };
-  var EID_FROM_APIHOST = /* @__PURE__ */ new Map([
-    ["identitytoolkit.googleapis.com", "p"],
-    // production
-    ["staging-identitytoolkit.sandbox.googleapis.com", "s"],
-    // staging
-    ["test-identitytoolkit.sandbox.googleapis.com", "t"]
-    // test
-  ]);
-  function getIframeUrl(auth2) {
-    const config = auth2.config;
-    _assert(
-      config.authDomain,
-      auth2,
-      "auth-domain-config-required"
-      /* AuthErrorCode.MISSING_AUTH_DOMAIN */
-    );
-    const url = config.emulator ? _emulatorUrl(config, EMULATED_IFRAME_PATH) : `https://${auth2.config.authDomain}/${IFRAME_PATH}`;
-    const params = {
-      apiKey: config.apiKey,
-      appName: auth2.name,
-      v: SDK_VERSION
-    };
-    const eid = EID_FROM_APIHOST.get(auth2.config.apiHost);
-    if (eid) {
-      params.eid = eid;
-    }
-    const frameworks = auth2._getFrameworks();
-    if (frameworks.length) {
-      params.fw = frameworks.join(",");
-    }
-    return `${url}?${querystring(params).slice(1)}`;
-  }
-  async function _openIframe(auth2) {
-    const context = await _loadGapi(auth2);
-    const gapi2 = _window().gapi;
-    _assert(
-      gapi2,
-      auth2,
-      "internal-error"
-      /* AuthErrorCode.INTERNAL_ERROR */
-    );
-    return context.open({
-      where: document.body,
-      url: getIframeUrl(auth2),
-      messageHandlersFilter: gapi2.iframes.CROSS_ORIGIN_IFRAMES_FILTER,
-      attributes: IFRAME_ATTRIBUTES,
-      dontclear: true
-    }, (iframe) => new Promise(async (resolve, reject) => {
-      await iframe.restyle({
-        // Prevent iframe from closing on mouse out.
-        setHideOnLeave: false
-      });
-      const networkError = _createError(
-        auth2,
-        "network-request-failed"
-        /* AuthErrorCode.NETWORK_REQUEST_FAILED */
-      );
-      const networkErrorTimer = _window().setTimeout(() => {
-        reject(networkError);
-      }, PING_TIMEOUT.get());
-      function clearTimerAndResolve() {
-        _window().clearTimeout(networkErrorTimer);
-        resolve(iframe);
-      }
-      iframe.ping(clearTimerAndResolve).then(clearTimerAndResolve, () => {
-        reject(networkError);
-      });
-    }));
-  }
-  var BASE_POPUP_OPTIONS = {
-    location: "yes",
-    resizable: "yes",
-    statusbar: "yes",
-    toolbar: "no"
-  };
-  var DEFAULT_WIDTH = 500;
-  var DEFAULT_HEIGHT = 600;
-  var TARGET_BLANK = "_blank";
-  var FIREFOX_EMPTY_URL = "http://localhost";
-  var AuthPopup = class {
-    constructor(window2) {
-      this.window = window2;
-      this.associatedEvent = null;
-    }
-    close() {
-      if (this.window) {
-        try {
-          this.window.close();
-        } catch (e) {
-        }
-      }
-    }
-  };
-  function _open(auth2, url, name4, width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT) {
-    const top = Math.max((window.screen.availHeight - height) / 2, 0).toString();
-    const left = Math.max((window.screen.availWidth - width) / 2, 0).toString();
-    let target = "";
-    const options = {
-      ...BASE_POPUP_OPTIONS,
-      width: width.toString(),
-      height: height.toString(),
-      top,
-      left
-    };
-    const ua = getUA().toLowerCase();
-    if (name4) {
-      target = _isChromeIOS(ua) ? TARGET_BLANK : name4;
-    }
-    if (_isFirefox(ua)) {
-      url = url || FIREFOX_EMPTY_URL;
-      options.scrollbars = "yes";
-    }
-    const optionsString = Object.entries(options).reduce((accum, [key, value]) => `${accum}${key}=${value},`, "");
-    if (_isIOSStandalone(ua) && target !== "_self") {
-      openAsNewWindowIOS(url || "", target);
-      return new AuthPopup(null);
-    }
-    const newWin = window.open(url || "", target, optionsString);
-    _assert(
-      newWin,
-      auth2,
-      "popup-blocked"
-      /* AuthErrorCode.POPUP_BLOCKED */
-    );
-    try {
-      newWin.focus();
-    } catch (e) {
-    }
-    return new AuthPopup(newWin);
-  }
-  function openAsNewWindowIOS(url, target) {
-    const el = document.createElement("a");
-    el.href = url;
-    el.target = target;
-    const click = document.createEvent("MouseEvent");
-    click.initMouseEvent("click", true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 1, null);
-    el.dispatchEvent(click);
-  }
-  var WIDGET_PATH = "__/auth/handler";
-  var EMULATOR_WIDGET_PATH = "emulator/auth/handler";
   var FIREBASE_APP_CHECK_FRAGMENT_ID = encodeURIComponent("fac");
-  async function _getRedirectUrl(auth2, provider2, authType, redirectUrl, eventId, additionalParams) {
-    _assert(
-      auth2.config.authDomain,
-      auth2,
-      "auth-domain-config-required"
-      /* AuthErrorCode.MISSING_AUTH_DOMAIN */
-    );
-    _assert(
-      auth2.config.apiKey,
-      auth2,
-      "invalid-api-key"
-      /* AuthErrorCode.INVALID_API_KEY */
-    );
-    const params = {
-      apiKey: auth2.config.apiKey,
-      appName: auth2.name,
-      authType,
-      redirectUrl,
-      v: SDK_VERSION,
-      eventId
-    };
-    if (provider2 instanceof FederatedAuthProvider) {
-      provider2.setDefaultLanguage(auth2.languageCode);
-      params.providerId = provider2.providerId || "";
-      if (!isEmpty(provider2.getCustomParameters())) {
-        params.customParameters = JSON.stringify(provider2.getCustomParameters());
-      }
-      for (const [key, value] of Object.entries(additionalParams || {})) {
-        params[key] = value;
-      }
-    }
-    if (provider2 instanceof BaseOAuthProvider) {
-      const scopes = provider2.getScopes().filter((scope) => scope !== "");
-      if (scopes.length > 0) {
-        params.scopes = scopes.join(",");
-      }
-    }
-    if (auth2.tenantId) {
-      params.tid = auth2.tenantId;
-    }
-    const paramsDict = params;
-    for (const key of Object.keys(paramsDict)) {
-      if (paramsDict[key] === void 0) {
-        delete paramsDict[key];
-      }
-    }
-    const appCheckToken = await auth2._getAppCheckToken();
-    const appCheckTokenFragment = appCheckToken ? `#${FIREBASE_APP_CHECK_FRAGMENT_ID}=${encodeURIComponent(appCheckToken)}` : "";
-    return `${getHandlerBase(auth2)}?${querystring(paramsDict).slice(1)}${appCheckTokenFragment}`;
-  }
-  function getHandlerBase({ config }) {
-    if (!config.emulator) {
-      return `https://${config.authDomain}/${WIDGET_PATH}`;
-    }
-    return _emulatorUrl(config, EMULATOR_WIDGET_PATH);
-  }
-  var WEB_STORAGE_SUPPORT_KEY = "webStorageSupport";
-  var BrowserPopupRedirectResolver = class {
-    constructor() {
-      this.eventManagers = {};
-      this.iframes = {};
-      this.originValidationPromises = {};
-      this._redirectPersistence = browserSessionPersistence;
-      this._completeRedirectFn = _getRedirectResult;
-      this._overrideRedirectResult = _overrideRedirectResult;
-    }
-    // Wrapping in async even though we don't await anywhere in order
-    // to make sure errors are raised as promise rejections
-    async _openPopup(auth2, provider2, authType, eventId) {
-      debugAssert(this.eventManagers[auth2._key()]?.manager, "_initialize() not called before _openPopup()");
-      const url = await _getRedirectUrl(auth2, provider2, authType, _getCurrentUrl(), eventId);
-      return _open(auth2, url, _generateEventId());
-    }
-    async _openRedirect(auth2, provider2, authType, eventId) {
-      await this._originValidation(auth2);
-      const url = await _getRedirectUrl(auth2, provider2, authType, _getCurrentUrl(), eventId);
-      _setWindowLocation(url);
-      return new Promise(() => {
-      });
-    }
-    _initialize(auth2) {
-      const key = auth2._key();
-      if (this.eventManagers[key]) {
-        const { manager, promise: promise2 } = this.eventManagers[key];
-        if (manager) {
-          return Promise.resolve(manager);
-        } else {
-          debugAssert(promise2, "If manager is not set, promise should be");
-          return promise2;
-        }
-      }
-      const promise = this.initAndGetManager(auth2);
-      this.eventManagers[key] = { promise };
-      promise.catch(() => {
-        delete this.eventManagers[key];
-      });
-      return promise;
-    }
-    async initAndGetManager(auth2) {
-      const iframe = await _openIframe(auth2);
-      const manager = new AuthEventManager(auth2);
-      iframe.register("authEvent", (iframeEvent) => {
-        _assert(
-          iframeEvent?.authEvent,
-          auth2,
-          "invalid-auth-event"
-          /* AuthErrorCode.INVALID_AUTH_EVENT */
-        );
-        const handled = manager.onEvent(iframeEvent.authEvent);
-        return {
-          status: handled ? "ACK" : "ERROR"
-          /* GapiOutcome.ERROR */
-        };
-      }, gapi.iframes.CROSS_ORIGIN_IFRAMES_FILTER);
-      this.eventManagers[auth2._key()] = { manager };
-      this.iframes[auth2._key()] = iframe;
-      return manager;
-    }
-    _isIframeWebStorageSupported(auth2, cb) {
-      const iframe = this.iframes[auth2._key()];
-      iframe.send(WEB_STORAGE_SUPPORT_KEY, { type: WEB_STORAGE_SUPPORT_KEY }, (result) => {
-        const isSupported = result?.[0]?.[WEB_STORAGE_SUPPORT_KEY];
-        if (isSupported !== void 0) {
-          cb(!!isSupported);
-        }
-        _fail(
-          auth2,
-          "internal-error"
-          /* AuthErrorCode.INTERNAL_ERROR */
-        );
-      }, gapi.iframes.CROSS_ORIGIN_IFRAMES_FILTER);
-    }
-    _originValidation(auth2) {
-      const key = auth2._key();
-      if (!this.originValidationPromises[key]) {
-        this.originValidationPromises[key] = _validateOrigin(auth2);
-      }
-      return this.originValidationPromises[key];
-    }
-    get _shouldInitProactively() {
-      return _isMobileBrowser() || _isSafari() || _isIOS();
-    }
-  };
-  var browserPopupRedirectResolver = BrowserPopupRedirectResolver;
   var MultiFactorAssertionImpl = class {
     constructor(factorId) {
       this.factorId = factorId;
@@ -8014,53 +7292,6 @@
   }
   var DEFAULT_ID_TOKEN_MAX_AGE = 5 * 60;
   var authIdTokenMaxAge = getExperimentalSetting("authIdTokenMaxAge") || DEFAULT_ID_TOKEN_MAX_AGE;
-  var lastPostedIdToken = null;
-  var mintCookieFactory = (url) => async (user) => {
-    const idTokenResult = user && await user.getIdTokenResult();
-    const idTokenAge = idTokenResult && ((/* @__PURE__ */ new Date()).getTime() - Date.parse(idTokenResult.issuedAtTime)) / 1e3;
-    if (idTokenAge && idTokenAge > authIdTokenMaxAge) {
-      return;
-    }
-    const idToken = idTokenResult?.token;
-    if (lastPostedIdToken === idToken) {
-      return;
-    }
-    lastPostedIdToken = idToken;
-    await fetch(url, {
-      method: idToken ? "POST" : "DELETE",
-      headers: idToken ? {
-        "Authorization": `Bearer ${idToken}`
-      } : {}
-    });
-  };
-  function getAuth(app2 = getApp()) {
-    const provider2 = _getProvider(app2, "auth");
-    if (provider2.isInitialized()) {
-      return provider2.getImmediate();
-    }
-    const auth2 = initializeAuth(app2, {
-      popupRedirectResolver: browserPopupRedirectResolver,
-      persistence: [
-        indexedDBLocalPersistence,
-        browserLocalPersistence,
-        browserSessionPersistence
-      ]
-    });
-    const authTokenSyncPath = getExperimentalSetting("authTokenSyncURL");
-    if (authTokenSyncPath && typeof isSecureContext === "boolean" && isSecureContext) {
-      const authTokenSyncUrl = new URL(authTokenSyncPath, location.origin);
-      if (location.origin === authTokenSyncUrl.origin) {
-        const mintCookie = mintCookieFactory(authTokenSyncUrl.toString());
-        beforeAuthStateChanged(auth2, mintCookie, () => mintCookie(auth2.currentUser));
-        onIdTokenChanged(auth2, (user) => mintCookie(user));
-      }
-    }
-    const authEmulatorHost = getDefaultEmulatorHost("auth");
-    if (authEmulatorHost) {
-      connectAuthEmulator(auth2, `http://${authEmulatorHost}`);
-    }
-    return auth2;
-  }
   function getScriptParentElement() {
     return document.getElementsByTagName("head")?.[0] ?? document;
   }
@@ -8083,9 +7314,9 @@
         getScriptParentElement().appendChild(el);
       });
     },
-    gapiScript: "https://apis.google.com/js/api.js",
-    recaptchaV2Script: "https://www.google.com/recaptcha/api.js",
-    recaptchaEnterpriseScript: "https://www.google.com/recaptcha/enterprise.js?render="
+    gapiScript: "",
+    recaptchaV2Script: "",
+    recaptchaEnterpriseScript: ""
   });
   registerAuth(
     "Browser"
@@ -20583,7 +19814,9 @@ This typically indicates that your device does not have a healthy Internet conne
     measurementId: "G-ZZ0SPCQ2TX"
   };
   var app = initializeApp(firebaseConfig);
-  var auth = getAuth(app);
+  var auth = initializeAuth(app, {
+    persistence: browserLocalPersistence
+  });
   var db = getFirestore(app);
   var provider = new GoogleAuthProvider();
 
@@ -20751,18 +19984,7 @@ This typically indicates that your device does not have a healthy Internet conne
     }
   }
   async function handleGoogleSignIn() {
-    try {
-      chrome.identity.getAuthToken({ interactive: true }, async function(token) {
-        if (chrome.runtime.lastError || !token) {
-          console.error("Identity Error:", chrome.runtime.lastError);
-          return;
-        }
-        const credential = GoogleAuthProvider.credential(null, token);
-        await signInWithCredential(auth, credential);
-      });
-    } catch (error) {
-      console.error("Sign In Error:", error);
-    }
+    chrome.tabs.create({ url: chrome.runtime.getURL("src/auth.html") });
   }
   async function handleSignOut() {
     try {
@@ -21219,6 +20441,14 @@ firebase/app/dist/esm/index.esm.js:
 @firebase/auth/dist/esm/index-36fcbc82.js:
 @firebase/auth/dist/esm/index-36fcbc82.js:
 @firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
 @firebase/firestore/dist/index.esm.js:
 @firebase/firestore/dist/index.esm.js:
 @firebase/firestore/dist/index.esm.js:
@@ -21250,6 +20480,7 @@ firebase/app/dist/esm/index.esm.js:
    *)
 
 @firebase/util/dist/index.esm.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
 @firebase/auth/dist/esm/index-36fcbc82.js:
 @firebase/firestore/dist/index.esm.js:
   (**
@@ -21423,6 +20654,8 @@ firebase/app/dist/esm/index.esm.js:
    *)
 
 @firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
   (**
    * @license
    * Copyright 2019 Google LLC
@@ -21509,7 +20742,7 @@ firebase/app/dist/esm/index.esm.js:
 @firebase/auth/dist/esm/index-36fcbc82.js:
   (**
    * @license
-   * Copyright 2020 Google LLC
+   * Copyright 2020 Google LLC.
    *
    * Licensed under the Apache License, Version 2.0 (the "License");
    * you may not use this file except in compliance with the License.
@@ -21539,23 +20772,8 @@ firebase/app/dist/esm/index.esm.js:
    * See the License for the specific language governing permissions and
    * limitations under the License.
    *)
-  (**
-   * @license
-   * Copyright 2020 Google LLC.
-   *
-   * Licensed under the Apache License, Version 2.0 (the "License");
-   * you may not use this file except in compliance with the License.
-   * You may obtain a copy of the License at
-   *
-   *   http://www.apache.org/licenses/LICENSE-2.0
-   *
-   * Unless required by applicable law or agreed to in writing, software
-   * distributed under the License is distributed on an "AS IS" BASIS,
-   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   * See the License for the specific language governing permissions and
-   * limitations under the License.
-   *)
 
+@firebase/auth/dist/esm/index-36fcbc82.js:
 @firebase/auth/dist/esm/index-36fcbc82.js:
   (**
    * @license
@@ -21589,59 +20807,13 @@ firebase/app/dist/esm/index.esm.js:
    * See the License for the specific language governing permissions and
    * limitations under the License.
    *)
-  (**
-   * @license
-   * Copyright 2019 Google LLC
-   *
-   * Licensed under the Apache License, Version 2.0 (the "License");
-   * you may not use this file except in compliance with the License.
-   * You may obtain a copy of the License at
-   *
-   *   http://www.apache.org/licenses/LICENSE-2.0
-   *
-   * Unless required by applicable law or agreed to in writing, software
-   * distributed under the License is distributed on an "AS IS" BASIS,
-   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   * See the License for the specific language governing permissions and
-   * limitations under the License.
-   *)
 
+@firebase/auth/dist/esm/index-36fcbc82.js:
+@firebase/auth/dist/esm/index-36fcbc82.js:
 @firebase/auth/dist/esm/index-36fcbc82.js:
   (**
    * @license
-   * Copyright 2020 Google LLC
-   *
-   * Licensed under the Apache License, Version 2.0 (the "License");
-   * you may not use this file except in compliance with the License.
-   * You may obtain a copy of the License at
-   *
-   *   http://www.apache.org/licenses/LICENSE-2.0
-   *
-   * Unless required by applicable law or agreed to in writing, software
-   * distributed under the License is distributed on an "AS IS" BASIS,
-   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   * See the License for the specific language governing permissions and
-   * limitations under the License.
-   *)
-  (**
-   * @license
    * Copyright 2020 Google LLC.
-   *
-   * Licensed under the Apache License, Version 2.0 (the "License");
-   * you may not use this file except in compliance with the License.
-   * You may obtain a copy of the License at
-   *
-   *   http://www.apache.org/licenses/LICENSE-2.0
-   *
-   * Unless required by applicable law or agreed to in writing, software
-   * distributed under the License is distributed on an "AS IS" BASIS,
-   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   * See the License for the specific language governing permissions and
-   * limitations under the License.
-   *)
-  (**
-   * @license
-   * Copyright 2021 Google LLC
    *
    * Licensed under the Apache License, Version 2.0 (the "License");
    * you may not use this file except in compliance with the License.

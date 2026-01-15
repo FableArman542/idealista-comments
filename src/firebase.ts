@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getAuth, GoogleAuthProvider, signInWithCredential, signOut, onAuthStateChanged, User, signInWithPopup } from "firebase/auth";
+import { initializeAuth, browserLocalPersistence, GoogleAuthProvider, signInWithCredential, signOut, onAuthStateChanged, User } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -19,9 +19,11 @@ import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, doc, 
 const app = initializeApp(firebaseConfig);
 // Analytics might fail in extension environment due to CSP, careful usage recommended
 // const analytics = getAnalytics(app); 
-const auth = getAuth(app);
+const auth = initializeAuth(app, {
+  persistence: browserLocalPersistence
+});
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-export { app, auth, db, provider, signInWithCredential, User, signOut, onAuthStateChanged, GoogleAuthProvider, collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove, serverTimestamp, Timestamp, signInWithPopup };
+export { app, auth, db, provider, signInWithCredential, User, signOut, onAuthStateChanged, GoogleAuthProvider, collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove, serverTimestamp, Timestamp };
 

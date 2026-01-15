@@ -244,22 +244,9 @@ function initializeAuth() {
 }
 
 async function handleGoogleSignIn() {
-    try {
-        chrome.identity.getAuthToken({ interactive: true }, async function(token) {
-            if (chrome.runtime.lastError || !token) {
-                console.error("Identity Error:", chrome.runtime.lastError);
-                return;
-            }
-            
-            // Create a credential with the token
-            const credential = GoogleAuthProvider.credential(null, token as string);
-            
-            // Sign in with the credential
-            await signInWithCredential(auth, credential);
-        });
-    } catch (error) {
-        console.error("Sign In Error:", error);
-    }
+    // Open auth.html in a new tab to handle the authentication flow
+    // This prevents the popup from closing and interrupting the flow
+    chrome.tabs.create({ url: chrome.runtime.getURL('src/auth.html') });
 }
 
 async function handleSignOut() {
