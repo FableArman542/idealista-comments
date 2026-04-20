@@ -38,30 +38,12 @@
             font-weight: 500;
         }
         .auth-btn:hover { background-color: #357ae8; }
-        .success { color: #4CAF50; display: none; }
-        .error { color: #F44336; display: none; margin-top: 10px; font-size: 14px; }
+        .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .error { color: #F44336; margin-top: 10px; font-size: 14px; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div id="login-section">
-            <h2>Sign in</h2>
-            <p>Sign in to post comments on Idealista listings.</p>
-            <button id="auth-btn" class="auth-btn">
-                Sign in with Google
-            </button>
-            <p class="error" id="error-msg"></p>
-            <div id="debug-info" style="margin-top: 20px; font-size: 11px; color: #999; text-align: left; background: #eee; padding: 10px; border-radius: 4px; display:none;">
-                <strong>Debug Info:</strong><br>
-                Extension ID: <span id="ext-id"></span><br>
-                Redirect URI: <span id="redirect-uri"></span>
-            </div>
-        </div>
-        <div id="success-section" style="display: none;">
-            <h2 class="success" style="display: block;">Success!</h2>
-            <p>You are now signed in. You can close this tab and return to the extension.</p>
-        </div>
-    </div>
+    <div id="app"></div>
     <script src="../dist/auth.js"></script>
 </body>
 </html>

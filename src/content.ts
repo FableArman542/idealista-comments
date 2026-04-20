@@ -6,9 +6,10 @@ interface PropertyData {
 
 // Function to scrape data from Idealista
 const getPropertyData = (): PropertyData => {
-    // 1. Get ID from URL (e.g. .../imovel/34683501/...)
+    // 1. Get ID from URL — supports all idealista domains:
+    //    PT: /imovel/12345/  ES: /inmueble/12345/  IT: /immobile/12345/
     const url = window.location.href;
-    const idMatch = url.match(/\/imovel\/(\d+)/);
+    const idMatch = url.match(/\/(?:imovel|inmueble|immobile)\/(\d+)/);
     const id = idMatch ? idMatch[1] : null;
 
     // 2. Get Title (Idealista usually uses .main-info__title-main or h1)

@@ -3,7 +3,7 @@
   // src/content.ts
   var getPropertyData = () => {
     const url = window.location.href;
-    const idMatch = url.match(/\/imovel\/(\d+)/);
+    const idMatch = url.match(/\/(?:imovel|inmueble|immobile)\/(\d+)/);
     const id = idMatch ? idMatch[1] : null;
     const titleEl = document.querySelector(".main-info__title-main");
     const title = titleEl ? titleEl.innerText : document.title;

@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "esbuild src/popup.ts --bundle --outfile=dist/popup.js --format=iife --target=es2020 && esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2020 && esbuild src/auth.ts --bundle --outfile=dist/auth.js --format=iife --target=es2020 && node scripts/cleanup.js",
-    "watch": "esbuild src/popup.ts --bundle --outfile=dist/popup.js --format=iife --target=es2020 --watch & esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2020 --watch & esbuild src/auth.ts --bundle --outfile=dist/auth.js --format=iife --target=es2020 --watch",
+    "build": "esbuild src/popup.tsx --bundle --outfile=dist/popup.js --format=iife --target=es2020 --jsx=automatic --jsx-import-source=preact && esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2020 && esbuild src/auth.tsx --bundle --outfile=dist/auth.js --format=iife --target=es2020 --jsx=automatic --jsx-import-source=preact && node scripts/cleanup.js",
+    "watch": "esbuild src/popup.tsx --bundle --outfile=dist/popup.js --format=iife --target=es2020 --jsx=automatic --jsx-import-source=preact --watch & esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2020 --watch & esbuild src/auth.tsx --bundle --outfile=dist/auth.js --format=iife --target=es2020 --jsx=automatic --jsx-import-source=preact --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -17,6 +17,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "firebase": "^12.7.0"
+    "firebase": "^12.7.0",
+    "preact": "^10.29.1"
   }
 }

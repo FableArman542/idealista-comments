@@ -1,8 +1,13 @@
 {
     "manifest_version": 3,
     "name": "Idealista Chat & Comments",
-    "version": "1.0",
+    "version": "1.1",
     "permissions": ["activeTab", "storage", "scripting", "identity"],
+    "host_permissions": [
+      "*://*.idealista.pt/*",
+      "*://*.idealista.com/*",
+      "*://*.idealista.it/*"
+    ],
     "oauth2": {
       "client_id": "446935726598-vdpl2i914qlv6r7pk22ts6khdicfqvt8.apps.googleusercontent.com",
       "scopes": [
@@ -24,10 +29,14 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "description": "Discuss prices, neighborhoods, and more directly on Idealista property listings.",
+    "description": "Discuss prices, neighborhoods, and more with other users on Idealista pages. Sign in with Google, post comments, reply, and like on any Idealista listing page.",
     "content_scripts": [
       {
-        "matches": ["*://*.idealista.pt/imovel/*"],
+        "matches": [
+          "*://*.idealista.pt/imovel/*",
+          "*://*.idealista.com/inmueble/*",
+          "*://*.idealista.it/immobile/*"
+        ],
         "js": ["dist/content.js"]
       }
     ]

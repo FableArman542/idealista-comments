@@ -1,9 +1,13 @@
 body {
     width: 350px;
-    height: 550px; /* Increased height for topics */
+    height: 550px;
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f9f9f9;
+}
+
+#app {
+    height: 100%;
 }
 
 .container {
@@ -67,6 +71,55 @@ input#nickname {
     border-radius: 4px;
     padding: 4px 8px;
     flex-grow: 1;
+}
+
+/* Guidance / onboarding state */
+.guidance-view {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px;
+    text-align: center;
+    gap: 8px;
+}
+
+.guidance-icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+}
+
+.guidance-text {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.guidance-hint {
+    font-size: 11px;
+    color: #888;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.guidance-btn {
+    margin-top: 12px;
+    background-color: #B9E937;
+    color: #333;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.guidance-btn:hover {
+    background-color: #a3d125;
 }
 
 .comments-area {
@@ -232,15 +285,22 @@ input#nickname {
     transition: all 0.2s;
 }
 
-.topic-checkbox:checked + .topic-label {
+/* Support both sibling (old HTML) and parent-child (Preact) structures */
+.topic-checkbox:checked + .topic-label,
+.topic-checkbox:checked ~ .topic-label,
+.topic-label.selected {
     border-color: transparent;
     color: white;
 }
 
-.topic-checkbox:checked + .topic-label.lbl-price { background-color: #4CAF50; }
-.topic-checkbox:checked + .topic-label.lbl-noise { background-color: #F44336; }
-.topic-checkbox:checked + .topic-label.lbl-security { background-color: #2196F3; }
-.topic-checkbox:checked + .topic-label.lbl-accesses { background-color: #FF9800; }
+.topic-checkbox:checked + .topic-label.lbl-price,
+.topic-label.selected.lbl-price { background-color: #4CAF50; }
+.topic-checkbox:checked + .topic-label.lbl-noise,
+.topic-label.selected.lbl-noise { background-color: #F44336; }
+.topic-checkbox:checked + .topic-label.lbl-security,
+.topic-label.selected.lbl-security { background-color: #2196F3; }
+.topic-checkbox:checked + .topic-label.lbl-accesses,
+.topic-label.selected.lbl-accesses { background-color: #FF9800; }
 
 .input-area {
     padding: 10px 15px 15px 15px;
