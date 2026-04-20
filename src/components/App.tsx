@@ -9,6 +9,8 @@ import { AuthBar } from './AuthBar';
 import { GuidanceView } from './GuidanceView';
 import { CommentsList } from './CommentsList';
 import { CommentInput } from './CommentInput';
+import { AffiliateBar } from './AffiliateBar';
+import { AdBanner } from './AdBanner';
 
 export function App() {
     const [lang, setLangState] = useState<Language>('en');
@@ -234,6 +236,8 @@ export function App() {
                 <Header listingId={listingId} listingTitle={listingTitle} loading={loading} />
                 <AuthBar user={user} />
 
+                <AffiliateBar />
+
                 {noListing ? (
                     <GuidanceView />
                 ) : (
@@ -251,6 +255,8 @@ export function App() {
                         )}
                     </>
                 )}
+
+                <AdBanner />
             </div>
         </I18nContext.Provider>
     );

@@ -22,7 +22,12 @@ export const translations = {
         reply: "Reply",
         cancel: "Cancel",
         anonymous: "Anonymous",
-        postAnonymously: "Post anonymously"
+        postAnonymously: "Post anonymously",
+        sponsored: "Sponsored",
+        ad: "Ad",
+        compareMortgages: "Compare Mortgages",
+        homeInsurance: "Home Insurance",
+        movingServices: "Moving Services"
     },
     pt: {
         loadingId: "A carregar ID...",
@@ -45,7 +50,12 @@ export const translations = {
         reply: "Responder",
         cancel: "Cancelar",
         anonymous: "Anónimo",
-        postAnonymously: "Publicar anonimamente"
+        postAnonymously: "Publicar anonimamente",
+        sponsored: "Patrocinado",
+        ad: "Anúncio",
+        compareMortgages: "Comparar Créditos",
+        homeInsurance: "Seguro Habitação",
+        movingServices: "Serviços de Mudanças"
     },
     es: {
         loadingId: "Cargando ID...",
@@ -68,7 +78,12 @@ export const translations = {
         reply: "Responder",
         cancel: "Cancelar",
         anonymous: "Anónimo",
-        postAnonymously: "Publicar anónimamente"
+        postAnonymously: "Publicar anónimamente",
+        sponsored: "Patrocinado",
+        ad: "Anuncio",
+        compareMortgages: "Comparar Hipotecas",
+        homeInsurance: "Seguro de Hogar",
+        movingServices: "Servicios de Mudanza"
     },
     it: {
         loadingId: "Caricamento ID...",
@@ -91,7 +106,12 @@ export const translations = {
         reply: "Rispondi",
         cancel: "Annulla",
         anonymous: "Anonimo",
-        postAnonymously: "Pubblica anonimamente"
+        postAnonymously: "Pubblica anonimamente",
+        sponsored: "Sponsorizzato",
+        ad: "Annuncio",
+        compareMortgages: "Confronta Mutui",
+        homeInsurance: "Assicurazione Casa",
+        movingServices: "Servizi Trasloco"
     }
 };
 

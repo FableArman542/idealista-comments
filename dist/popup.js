@@ -449,7 +449,12 @@
       reply: "Reply",
       cancel: "Cancel",
       anonymous: "Anonymous",
-      postAnonymously: "Post anonymously"
+      postAnonymously: "Post anonymously",
+      sponsored: "Sponsored",
+      ad: "Ad",
+      compareMortgages: "Compare Mortgages",
+      homeInsurance: "Home Insurance",
+      movingServices: "Moving Services"
     },
     pt: {
       loadingId: "A carregar ID...",
@@ -472,7 +477,12 @@
       reply: "Responder",
       cancel: "Cancelar",
       anonymous: "An\xF3nimo",
-      postAnonymously: "Publicar anonimamente"
+      postAnonymously: "Publicar anonimamente",
+      sponsored: "Patrocinado",
+      ad: "An\xFAncio",
+      compareMortgages: "Comparar Cr\xE9ditos",
+      homeInsurance: "Seguro Habita\xE7\xE3o",
+      movingServices: "Servi\xE7os de Mudan\xE7as"
     },
     es: {
       loadingId: "Cargando ID...",
@@ -495,7 +505,12 @@
       reply: "Responder",
       cancel: "Cancelar",
       anonymous: "An\xF3nimo",
-      postAnonymously: "Publicar an\xF3nimamente"
+      postAnonymously: "Publicar an\xF3nimamente",
+      sponsored: "Patrocinado",
+      ad: "Anuncio",
+      compareMortgages: "Comparar Hipotecas",
+      homeInsurance: "Seguro de Hogar",
+      movingServices: "Servicios de Mudanza"
     },
     it: {
       loadingId: "Caricamento ID...",
@@ -518,7 +533,12 @@
       reply: "Rispondi",
       cancel: "Annulla",
       anonymous: "Anonimo",
-      postAnonymously: "Pubblica anonimamente"
+      postAnonymously: "Pubblica anonimamente",
+      sponsored: "Sponsorizzato",
+      ad: "Annuncio",
+      compareMortgages: "Confronta Mutui",
+      homeInsurance: "Assicurazione Casa",
+      movingServices: "Servizi Trasloco"
     }
   };
 
@@ -20583,6 +20603,69 @@ This typically indicates that your device does not have a healthy Internet conne
     ] });
   }
 
+  // src/components/AffiliateBar.tsx
+  var AFFILIATE_LINKS = {
+    pt: [
+      { label: "compareMortgages", url: "https://www.comparaja.pt/credito-habitacao", icon: "\u{1F3E6}" },
+      { label: "homeInsurance", url: "https://www.comparaja.pt/seguros/habitacao", icon: "\u{1F6E1}" },
+      { label: "movingServices", url: "https://www.fixando.pt/mudancas", icon: "\u{1F4E6}" }
+    ],
+    es: [
+      { label: "compareMortgages", url: "https://www.helpmycash.com/hipotecas/", icon: "\u{1F3E6}" },
+      { label: "homeInsurance", url: "https://www.rastreator.com/seguros-de-hogar.html", icon: "\u{1F6E1}" },
+      { label: "movingServices", url: "https://www.mudanzasbaratas.com/", icon: "\u{1F4E6}" }
+    ],
+    it: [
+      { label: "compareMortgages", url: "https://www.mutuionline.it/", icon: "\u{1F3E6}" },
+      { label: "homeInsurance", url: "https://www.facile.it/assicurazioni-casa.html", icon: "\u{1F6E1}" },
+      { label: "movingServices", url: "https://www.traslochifacile.it/", icon: "\u{1F4E6}" }
+    ],
+    en: [
+      { label: "compareMortgages", url: "https://www.comparaja.pt/credito-habitacao", icon: "\u{1F3E6}" },
+      { label: "homeInsurance", url: "https://www.comparaja.pt/seguros/habitacao", icon: "\u{1F6E1}" },
+      { label: "movingServices", url: "https://www.fixando.pt/mudancas", icon: "\u{1F4E6}" }
+    ]
+  };
+  function AffiliateBar() {
+    const { t: t3, lang } = useTranslation();
+    const links = T2(() => {
+      const all = AFFILIATE_LINKS[lang] || AFFILIATE_LINKS.en;
+      const shuffled = [...all].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 2);
+    }, [lang]);
+    const handleClick = (url) => {
+      chrome.tabs.create({ url });
+    };
+    return /* @__PURE__ */ u3("div", { class: "affiliate-bar", children: [
+      /* @__PURE__ */ u3("span", { class: "affiliate-label", children: t3.sponsored }),
+      /* @__PURE__ */ u3("div", { class: "affiliate-links", children: links.map((link) => /* @__PURE__ */ u3(
+        "span",
+        {
+          class: "affiliate-link",
+          onClick: () => handleClick(link.url),
+          children: [
+            link.icon,
+            " ",
+            t3[link.label] || link.label
+          ]
+        },
+        link.label
+      )) })
+    ] });
+  }
+
+  // src/components/AdBanner.tsx
+  var KOFI_URL = "https://ko-fi.com/ar_dev";
+  function AdBanner() {
+    const handleClick = () => {
+      chrome.tabs.create({ url: KOFI_URL });
+    };
+    return /* @__PURE__ */ u3("div", { class: "ad-banner", onClick: handleClick, children: [
+      /* @__PURE__ */ u3("span", { class: "kofi-icon", children: "\u2615" }),
+      /* @__PURE__ */ u3("span", { class: "ad-text", children: "Enjoying the extension? Buy me a coffee!" })
+    ] });
+  }
+
   // src/components/App.tsx
   function App() {
     const [lang, setLangState] = d2("en");
@@ -20780,6 +20863,7 @@ This typically indicates that your device does not have a healthy Internet conne
     return /* @__PURE__ */ u3(I18nContext.Provider, { value: { t: t3, lang, setLang }, children: /* @__PURE__ */ u3("div", { class: "container", children: [
       /* @__PURE__ */ u3(Header, { listingId, listingTitle, loading }),
       /* @__PURE__ */ u3(AuthBar, { user }),
+      /* @__PURE__ */ u3(AffiliateBar, {}),
       noListing ? /* @__PURE__ */ u3(GuidanceView, {}) : /* @__PURE__ */ u3(S, { children: [
         /* @__PURE__ */ u3(
           CommentsList,
@@ -20793,7 +20877,8 @@ This typically indicates that your device does not have a healthy Internet conne
           }
         ),
         user && listingId && /* @__PURE__ */ u3(CommentInput, { onPost: handlePost })
-      ] })
+      ] }),
+      /* @__PURE__ */ u3(AdBanner, {})
     ] }) });
   }
 

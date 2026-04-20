@@ -29,7 +29,7 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "description": "Discuss prices, neighborhoods, and more with other users on Idealista pages. Sign in with Google, post comments, reply, and like on any Idealista listing page.",
+    "description": "Discuss prices, neighborhoods, and more with other users on Idealista. Post comments, reply, and like.",
     "content_scripts": [
       {
         "matches": [
