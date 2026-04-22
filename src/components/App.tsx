@@ -9,7 +9,6 @@ import { AuthBar } from './AuthBar';
 import { GuidanceView } from './GuidanceView';
 import { CommentsList } from './CommentsList';
 import { CommentInput } from './CommentInput';
-import { AffiliateBar } from './AffiliateBar';
 import { AdBanner } from './AdBanner';
 
 export function App() {
@@ -235,8 +234,6 @@ export function App() {
             <div class="container">
                 <Header listingId={listingId} listingTitle={listingTitle} loading={loading} />
                 <AuthBar user={user} />
-
-                <AffiliateBar />
 
                 {noListing ? (
                     <GuidanceView />

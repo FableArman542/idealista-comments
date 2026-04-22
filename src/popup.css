@@ -51,49 +51,7 @@ h2 { margin: 0; font-size: 18px; font-weight: 800; }
     font-size: 12px;
 }
 
-/* Affiliate bar */
-.affiliate-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 15px;
-    background: #f5f5f5;
-    border-bottom: 1px solid #eee;
-}
-
-.affiliate-label {
-    font-size: 9px;
-    color: #999;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    flex-shrink: 0;
-}
-
-.affiliate-links {
-    display: flex;
-    gap: 6px;
-    overflow: hidden;
-}
-
-.affiliate-link {
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: #fff;
-    border: 1px solid #ddd;
-    color: #555;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s;
-}
-
-.affiliate-link:hover {
-    background: #B9E937;
-    border-color: #B9E937;
-    color: #333;
-}
-
-/* Ad banner */
+/* Ko-fi / donation banner */
 .ad-banner {
     display: flex;
     align-items: center;
